@@ -3,9 +3,6 @@
 	"version": "1.0.3",
 	"description": "A Node web server",
 	"main": "index.js",
-	"scripts": {
-		"publish": "npm publish --access public"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/Miroware8/servecube.git"
