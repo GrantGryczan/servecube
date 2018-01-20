@@ -1,5 +1,5 @@
 {
-	"name": "@miroware/servecube",
+	"name": "servecube",
 	"version": "1.0.4",
 	"description": "A Node web server",
 	"main": "index.js",
@@ -26,5 +26,5 @@
 		"request-promise-native": "^1.0.5",
 		"uglify-js": "^3.3.7"
 	},
-	"devDependencies": {}
+	"devDependencies": {},
 }
