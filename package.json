@@ -1,6 +1,6 @@
 {
 	"name": "@miroware/servecube",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "A Node web server",
 	"main": "index.js",
 	"repository": {
