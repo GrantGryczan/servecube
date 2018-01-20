@@ -26,5 +26,5 @@
 		"request-promise-native": "^1.0.5",
 		"uglify-js": "^3.3.7"
 	},
-	"devDependencies": {},
+	"devDependencies": {}
 }
