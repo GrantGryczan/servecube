@@ -1,30 +1,33 @@
 {
-  "name": "@miroware/servecube",
-  "version": "1.0.0",
-  "description": "A Node web server",
-  "main": "index.js",
-  "repository": {
-	"type": "git",
-	"url": "git+https://github.com/Miroware8/servecube.git"
-  },
-  "author": "Grant Gryczan",
-  "license": "MIT",
-  "bugs": {
-	"url": "https://github.com/Miroware8/servecube/issues"
-  },
-  "homepage": "https://github.com/Miroware8/servecube#readme",
-  "dependencies": {
-	"babel-core": "^6.26.0",
-	"babel-preset-env": "^1.6.1",
-	"body-parser": "^1.18.2",
-	"clean-css": "^4.1.9",
-	"cookie-parser": "^1.4.3",
-	"express": "^4.16.2",
-	"express-session": "^1.15.6",
-	"mime": "^2.2.0",
-	"request": "^2.83.0",
-	"request-promise-native": "^1.0.5",
-	"uglify-js": "^3.3.7"
-  },
-  "devDependencies": {}
+	"name": "@miroware/servecube",
+	"version": "1.0.0",
+	"description": "A Node web server",
+	"main": "index.js",
+	"scripts": {
+		"publish": "npm publish --access public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Miroware8/servecube.git"
+	},
+	"author": "Grant Gryczan",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/Miroware8/servecube/issues"
+	},
+	"homepage": "https://github.com/Miroware8/servecube#readme",
+	"dependencies": {
+		"babel-core": "^6.26.0",
+		"babel-preset-env": "^1.6.1",
+		"body-parser": "^1.18.2",
+		"clean-css": "^4.1.9",
+		"cookie-parser": "^1.4.3",
+		"express": "^4.16.2",
+		"express-session": "^1.15.6",
+		"mime": "^2.2.0",
+		"request": "^2.83.0",
+		"request-promise-native": "^1.0.5",
+		"uglify-js": "^3.3.7"
+	},
+	"devDependencies": {}
 }
