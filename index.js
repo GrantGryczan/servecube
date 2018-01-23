@@ -26,28 +26,31 @@ const html = function() {
 };
 module.exports = {
 	serve: o => {
+		const val = {};
 		if(!o) {
 			o = {};
 		}
 		const options = {...o};
-		if(!(typeof options.basePath == "string")) {
+		if(typeof options.basePath === "string") {
+			options.basePath = options.basePath.replace(/\\/g, "/");
+		} else {
 			throw new Error("A base path option must be defined.");
 		}
-		if(!(typeof options.serverPath == "string")) {
+		if(!(typeof options.serverPath === "string")) {
 			options.serverPath = "server.js";
 		}
-		if(!(typeof options.httpPort == "number")) {
+		if(!(typeof options.httpPort === "number")) {
 			options.httpPort = 8080;
 		}
 		if(options.tls instanceof Object) {
-			if(!(typeof options.httpsPort == "number")) {
+			if(!(typeof options.httpsPort === "number")) {
 				options.httpsPort = 8443;
 			}
 		} else {
 			delete options.tls;
 		}
 		if(!(options.subdomain instanceof Array)) {
-			if(typeof options.subdomain == "string") {
+			if(typeof options.subdomain === "string") {
 				options.subdomain = [options.subdomain];
 			} else {
 				options.subdomain = [""];
@@ -55,17 +58,17 @@ module.exports = {
 		}
 		if(options.errorRedirect instanceof Object) {
 			Object.keys(options.errorRedirect).forEach(i => {
-				if(!(typeof options.errorRedirect[i] == "string")) {
+				if(!(typeof options.errorRedirect[i] === "string")) {
 					delete options.errorRedirect[i];
 				}
 			});
 		} else {
 			options.errorRedirect = {};
 		}
-		if(!(typeof options.githubSecret == "string")) {
+		if(!(typeof options.githubSecret === "string")) {
 			options.githubSecret = "";
 		}
-		const app = express();
+		const app = val.app = express();
 		app.set("trust proxy", true);
 		app.use(cookieParser());
 		app.use(bodyParser.raw({
@@ -118,8 +121,8 @@ module.exports = {
 				res.status(400).send("You need a new web browser.");
 			}
 		});
-		const rawPathCache = {};
-		const getRawPath = path => {
+		const rawPathCache = val._rawPathCache = {};
+		const getRawPath = val._getRawPath = path => {
 			if(rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
@@ -128,11 +131,15 @@ module.exports = {
 					output = `/${output}`;
 				}
 				output = `${options.basePath}www${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
-				if(output.lastIndexOf("/") > output.lastIndexOf(".") && !(fs.existsSync(output) && !fs.statSync(output).isDirectory())) {
-					if(!output.endsWith("/")) {
-						output += "/";
+				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
+					if(!fs.existsSync(output) || fs.existsSync(`${output}.njs`)) {
+						output += ".njs";
+					} else if(fs.statSync(output).isDirectory()) {
+						if(!output.endsWith("/")) {
+							output += "/";
+						}
+						output += "index.njs";
 					}
-					output += "index.njs";
 				}
 				var keys = Object.keys(rawPathCache);
 				if(keys.length > 100) {
@@ -141,9 +148,9 @@ module.exports = {
 				return rawPathCache[path] = output;
 			}
 		};
-		const readCache = {};
-		const loadCache = {};
-		const load = (path, context) => {
+		const readCache = val._readCache = {};
+		const loadCache = val._loadCache = {};
+		const load = val._load = (path, context) => {
 			const rawPath = getRawPath(path);
 			if(context) {
 				context = {...context};
@@ -156,7 +163,7 @@ module.exports = {
 			const properties = ["exit", "req", "res", Object.keys(context)];
 			context.value = "";
 			return new Promise((resolve, reject) => {
-				let cacheIndex = rawPath;
+				let cacheIndex = `${context.req.method} ${rawPath}`;
 				if(loadCache[cacheIndex] === 2) {
 					cacheIndex += "?";
 					const queryIndex = context.req.url.indexOf("?");
@@ -174,7 +181,6 @@ module.exports = {
 						if(context.cache) {
 							if(context.cache === 2) {
 								loadCache[rawPath] = context.cache;
-								cacheIndex = `${rawPath}?`;
 								const queryIndex = context.req.url.indexOf("?");
 								if(queryIndex !== -1) {
 									cacheIndex += context.req.url.slice(queryIndex+1);
@@ -201,51 +207,56 @@ module.exports = {
 				}
 			});
 		};
-		app.get("*", async (req, res) => {
-			res.set("Cache-Control", "max-age=86400");
-			if(options.subdomain.includes(req.subdomain)) {
-				const queryIndex = req.decodedPath.indexOf("?");
-				const noQueryIndex = queryIndex === -1;
-				const path = getRawPath(noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex));
-				const type = (path.lastIndexOf("/") > path.lastIndexOf(".")) ? "text/plain" : mime.getType(path);
-				let publicPath = path.slice(options.basePath.length+3);
-				if(path.endsWith("/index.njs")) {
-					publicPath = publicPath.slice(0, -9);
-				}
-				let publicPathQuery = publicPath;
-				if(!noQueryIndex) {
-					publicPathQuery += req.decodedPath.slice(queryIndex);
-				}
-				if(req.decodedPath !== publicPathQuery) {
-					res.redirect(publicPathQuery);
-				} else if(fs.existsSync(path)) {
-					res.set("Content-Type", type);
-					if(path.endsWith(".njs")) {
-						res.set("Cache-Control", "no-cache");
-						res.set("Content-Type", "text/html");
-						const result = await load(publicPath, {
-							req,
-							res
-						});
-						if(result.headers) {
-							Object.keys(result.headers).forEach(i => res.set(i, result.headers[i]));
-						}
-						if(result.status) {
-							res.status(result.status);
-						}
-						res.send(result.value);
-					} else {
-						if(type === "application/javascript" || type === "text/css") {
-							res.set("SourceMap", `${publicPath.slice(publicPath.lastIndexOf("/")+1)}.map`);
-						}
-						fs.createReadStream(path).pipe(res);
+		app.all("*", async (req, res) => {
+			const getMethod = req.method === "GET";
+			if(getMethod) {
+				res.set("Cache-Control", "max-age=86400");
+			} else if(req.method !== "POST" || !options.subdomain.includes(req.subdomain)) {
+				return;
+			}
+			const queryIndex = req.decodedPath.indexOf("?");
+			const noQueryIndex = queryIndex === -1;
+			const path = getRawPath(noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex));
+			const type = (path.lastIndexOf("/") > path.lastIndexOf(".")) ? "text/plain" : mime.getType(path);
+			let publicPath = path.slice(options.basePath.length+3);
+			if(path.endsWith("/index.njs")) {
+				publicPath = publicPath.slice(0, -9);
+			} else if(path.endsWith(".njs")) {
+				publicPath = publicPath.slice(0, -4);
+			}
+			let publicPathQuery = publicPath;
+			if(!noQueryIndex) {
+				publicPathQuery += req.decodedPath.slice(queryIndex);
+			}
+			if(req.decodedPath !== publicPathQuery) {
+				res.redirect(publicPathQuery);
+			} else if(fs.existsSync(path)) {
+				res.set("Content-Type", type);
+				if(path.endsWith(".njs")) {
+					res.set("Cache-Control", "no-cache");
+					res.set("Content-Type", "text/html");
+					const result = await load(publicPath, {
+						req,
+						res
+					});
+					if(result.headers) {
+						Object.keys(result.headers).forEach(i => res.set(i, result.headers[i]));
 					}
+					if(result.status) {
+						res.status(result.status);
+					}
+					res.send(result.value);
 				} else {
-					if(type === "text/html" && options.errorRedirect[404]) {
-						res.redirect(options.errorRedirect[404]);
-					} else {
-						res.send("404");
+					if(type === "application/javascript" || type === "text/css") {
+						res.set("SourceMap", `${publicPath.slice(publicPath.lastIndexOf("/")+1)}.map`);
 					}
+					fs.createReadStream(path).pipe(res);
+				}
+			} else {
+				if(getMethod && type === "text/html" && options.errorRedirect[404]) {
+					res.redirect(options.errorRedirect[404]);
+				} else {
+					res.status(404).send("404");
 				}
 			}
 		});
@@ -377,8 +388,6 @@ module.exports = {
 		if(options.tls) {
 			https.createServer(options.tls, app).listen(options.httpsPort);
 		}
-		return {
-			app: app
-		};
+		return val;
 	}
 };
