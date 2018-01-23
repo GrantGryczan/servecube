@@ -31,11 +31,10 @@ module.exports = {
 			o = {};
 		}
 		const options = {...o};
-		if(typeof options.basePath === "string") {
-			options.basePath = options.basePath.replace(/\\/g, "/");
-		} else {
-			throw new Error("A base path option must be defined.");
+		if(!(typeof options.basePath === "string")) {
+			options.basePath = process.cwd();
 		}
+		options.basePath = options.basePath.replace(/\\/g, "/");
 		if(!(typeof options.serverPath === "string")) {
 			options.serverPath = "server.js";
 		}
