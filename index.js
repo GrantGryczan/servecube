@@ -122,8 +122,8 @@ const ServeCube = {
 				res.status(400).send("You need a new web browser.");
 			}
 		});
-		const rawPathCache = val._rawPathCache = {};
-		const getRawPath = val._getRawPath = path => {
+		const rawPathCache = val.rawPathCache = {};
+		const getRawPath = val.getRawPath = path => {
 			if(rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
@@ -149,8 +149,8 @@ const ServeCube = {
 				return rawPathCache[path] = output;
 			}
 		};
-		const readCache = val._readCache = {};
-		const loadCache = val._loadCache = {};
+		const readCache = val.readCache = {};
+		const loadCache = val.loadCache = {};
 		const load = val.load = (path, context) => {
 			const rawPath = getRawPath(path);
 			if(context) {
