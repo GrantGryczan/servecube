@@ -8,7 +8,6 @@ const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const childProcess = require("child_process");
-const crypto = require("crypto");
 const babel = require("babel-core");
 const UglifyJS = require("uglify-js");
 const CleanCSS = require("clean-css");
