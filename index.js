@@ -16,15 +16,15 @@ const mime = require("mime");
 mime.define({
 	"text/html": ["njs"]
 });
-const html = function() {
-	let string = arguments[0][0];
-	const substitutions = Array.prototype.slice.call(arguments, 1);
-	for(let i = 0; i < substitutions.length; i++) {
-		string += String(substitutions[i]).replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + arguments[0][i+1];
-	}
-	return string;
-};
-module.exports = {
+const ServeCube = {
+	html: function() {
+		let string = arguments[0][0];
+		const substitutions = Array.prototype.slice.call(arguments, 1);
+		for(let i = 0; i < substitutions.length; i++) {
+			string += String(substitutions[i]).replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + arguments[0][i+1];
+		}
+		return string;
+	},
 	serve: o => {
 		const val = {};
 		if(!o) {
@@ -32,7 +32,7 @@ module.exports = {
 		}
 		const options = {...o};
 		if(!(typeof options.basePath === "string")) {
-			options.basePath = process.cwd();
+			options.basePath = `${process.cwd()}/`;
 		}
 		options.basePath = options.basePath.replace(/\\/g, "/");
 		if(!(typeof options.serverPath === "string")) {
@@ -131,7 +131,7 @@ module.exports = {
 				}
 				output = `${options.basePath}www${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
-					if(!fs.existsSync(output) || fs.existsSync(`${output}.njs`)) {
+					if(fs.existsSync(`${output}.njs`)) {
 						output += ".njs";
 					} else if(fs.statSync(output).isDirectory()) {
 						if(!output.endsWith("/")) {
@@ -149,7 +149,7 @@ module.exports = {
 		};
 		const readCache = val._readCache = {};
 		const loadCache = val._loadCache = {};
-		const load = val._load = (path, context) => {
+		const load = val.load = (path, context) => {
 			const rawPath = getRawPath(path);
 			if(context) {
 				context = {...context};
@@ -197,7 +197,7 @@ module.exports = {
 					try {
 						const modified = fs.statSync(rawPath).mtimeMs;
 						if(!readCache[rawPath]) {
-							readCache[rawPath] = [modified, eval(`(async function() {\n${fs.readFileSync(rawPath)}\n})`)];
+							readCache[rawPath] = [modified, options.eval(`(async function() {\n${fs.readFileSync(rawPath)}\n})`)];
 						}
 						readCache[rawPath][1].call(context);
 					} catch(err) {
@@ -259,130 +259,6 @@ module.exports = {
 				}
 			}
 		});
-		app.post("*", async (req, res) => {
-			if(options.subdomain.includes(req.subdomain)) {
-				if(req.path === "/github") {
-					const signature = req.get("X-Hub-Signature");
-					if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}` && req.get("X-GitHub-Event") === "push") {
-						const payload = JSON.parse(req.body);
-						const branch = payload.ref.slice(payload.ref.lastIndexOf("/")+1);
-						if(branch === "master") {
-							const modified = [];
-							const removed = [];
-							for(let v of payload.commits) {
-								for(let w of [...v.added, ...v.modified]) {
-									if(!modified.includes(w)) {
-										modified.push(w);
-										let contents = String(new Buffer(JSON.parse(await request.get({
-											url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${w}?ref=${branch}`,
-											headers: {
-												"User-Agent": "request"
-											}
-										})).content, "base64"));
-										let index = 0;
-										while(index = w.indexOf("/", index)+1) {
-											nextPath = w.slice(0, index-1);
-											if(!fs.existsSync(nextPath)) {
-												fs.mkdirSync(nextPath);
-											}
-										}
-										if(w.startsWith("www/")) {
-											if(w.endsWith(".njs")) {
-												contents = contents.split(/(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g);
-												for(let i = 1; i < contents.length; i += 2) {
-													contents[i] = contents[i].replace(/\n/g, "").replace(/\s+/g, " ");
-												}
-												contents = contents.join("");
-											} else {
-												const type = mime.getType(w);
-												if(type === "application/javascript") {
-													const filename = w.slice(w.lastIndexOf("/")+1);
-													const compiled = babel.transform(contents, {
-														ast: false,
-														comments: false,
-														compact: true,
-														filename,
-														minified: true,
-														presets: ["env"],
-														sourceMaps: true
-													});
-													const result = UglifyJS.minify(compiled.code, {
-														parse: {
-															html5_comments: false
-														},
-														compress: {
-															passes: 2,
-															unsafe_math: true
-														},
-														sourceMap: {
-															content: JSON.stringify(compiled.map),
-															filename
-														}
-													});
-													contents = result.code;
-													fs.writeFileSync(`${w}.map`, result.map);
-												} else if(type === "text/css") {
-													const output = new CleanCSS({
-														inline: false,
-														sourceMap: true
-													}).minify(contents);
-													contents = output.styles;
-													const sourceMap = JSON.parse(output.sourceMap);
-													sourceMap.sources = [w.slice(w.lastIndexOf("/")+1)];
-													fs.writeFileSync(`${w}.map`, JSON.stringify(sourceMap));
-												}
-											}
-										}
-										fs.writeFileSync(w, contents);
-										if(readCache[w]) {
-											delete readCache[w];
-										}
-										if(loadCache[w]) {
-											if(loadCache[w] === 2) {
-												Object.keys(loadCache).forEach(i => {
-													if(i.startsWith(`${w}?`)) {
-														delete loadCache[i];
-													}
-												});
-											}
-											delete loadCache[w];
-										}
-									}
-								}
-								for(let w of v.removed) {
-									if(!removed.includes(w)) {
-										removed.push(w);
-										if(fs.existsSync(w)) {
-											fs.unlinkSync(w);
-											const type = mime.getType(w);
-											if(type === "application/javascript" || type === "text/css") {
-												fs.unlinkSync(`${w}.map`);
-											}
-										}
-										let index = w.length;
-										while((index = w.lastIndexOf("/", index)-1) !== -2) {
-											const path = w.slice(0, index+1);
-											if(fs.existsSync(path)) {
-												try {
-													fs.rmdirSync(path);
-												} catch(err) {}
-											}
-										}
-									}
-								}
-							}
-							res.send();
-							if(modified.includes("package.json")) {
-								childProcess.spawnSync("npm", ["update"]);
-							}
-							if(modified.includes(options.serverPath)) {
-								process.exit();
-							}
-						}
-					}
-				}
-			}
-		});
 		http.createServer(app).listen(options.httpPort);
 		if(options.tls) {
 			https.createServer(options.tls, app).listen(options.httpsPort);
@@ -390,3 +266,4 @@ module.exports = {
 		return val;
 	}
 };
+module.exports = ServeCube;
