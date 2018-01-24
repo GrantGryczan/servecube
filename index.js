@@ -31,6 +31,9 @@ const ServeCube = {
 			o = {};
 		}
 		const options = {...o};
+		if(!(typeof options.eval === "function")) {
+			options.eval = eval;
+		}
 		if(!(typeof options.basePath === "string")) {
 			options.basePath = `${process.cwd()}/`;
 		}
