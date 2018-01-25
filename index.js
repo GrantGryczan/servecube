@@ -224,10 +224,10 @@ const ServeCube = {
 			const path = getRawPath(noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex));
 			const type = (path.lastIndexOf("/") > path.lastIndexOf(".")) ? "text/plain" : mime.getType(path);
 			let publicPath = path.slice(options.basePath.length+3);
-			if(path.endsWith(".njs")) {
+			if(publicPath.endsWith(".njs")) {
 				publicPath = publicPath.slice(0, -4);
 			}
-			if(path.endsWith("/index")) {
+			if(publicPath.endsWith("/index")) {
 				publicPath = publicPath.slice(0, -5);
 			}
 			let publicPathQuery = publicPath;
