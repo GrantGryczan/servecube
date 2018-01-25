@@ -245,17 +245,17 @@ const ServeCube = {
 						const files = {};
 						for(let i of payload.commits) {
 							for(let j of i.removed) {
-								files[j] = -1;
+								files[j] = 1;
 							}
 							for(let j of i.modified) {
-								files[j] = 0;
+								files[j] = 2;
 							}
 							for(let j of i.added) {
-								files[j] = 1;
+								files[j] = 3;
 							}
 						}
 						Object.keys(files).forEach(async i => {
-							if(files[i] == -1) {
+							if(files[i] === 1) {
 								if(fs.existsSync(i)) {
 									fs.unlinkSync(i);
 									const type = mime.getType(i);
@@ -272,7 +272,7 @@ const ServeCube = {
 										} catch(err) {}
 									}
 								}
-							} else if(files[i] === 0 || files[i] === 1) {
+							} else if(files[i] === 2 || files[i] === 3) {
 								let contents = String(new Buffer(JSON.parse(await request.get({
 									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
 									headers: {
