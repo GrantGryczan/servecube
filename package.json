@@ -24,7 +24,7 @@
 		"mime": "^2.2.0",
 		"request": "^2.83.0",
 		"request-promise-native": "^1.0.5",
-		"uglify-js": "^3.3.7"
+		"uglify-js": "^3.3.8"
 	},
 	"devDependencies": {}
 }
