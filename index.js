@@ -8,6 +8,7 @@ const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const childProcess = require("child_process");
+const crypto = require("crypto");
 const babel = require("babel-core");
 const UglifyJS = require("uglify-js");
 const CleanCSS = require("clean-css");
@@ -133,16 +134,19 @@ const ServeCube = {
 				}
 				output = `${options.basePath}www${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
-					if(fs.existsSync(`${output}.njs`)) {
-						output += ".njs";
-					} else if(fs.statSync(output).isDirectory()) {
+					if(fs.existsSync(output) && fs.statSync(output).isDirectory()) {
 						if(!output.endsWith("/")) {
 							output += "/";
 						}
 						output += "index.njs";
+					} else {
+						const outputFile = `${output}.njs`;
+						if(fs.existsSync(outputFile) && !fs.statSync(outputFile).isDirectory()) {
+							output = outputFile;
+						}
 					}
 				}
-				var keys = Object.keys(rawPathCache);
+				const keys = Object.keys(rawPathCache);
 				if(keys.length > 100) {
 					delete rawPathCache[keys[0]];
 				}
@@ -220,10 +224,11 @@ const ServeCube = {
 			const path = getRawPath(noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex));
 			const type = (path.lastIndexOf("/") > path.lastIndexOf(".")) ? "text/plain" : mime.getType(path);
 			let publicPath = path.slice(options.basePath.length+3);
-			if(path.endsWith("/index.njs")) {
-				publicPath = publicPath.slice(0, -9);
-			} else if(path.endsWith(".njs")) {
+			if(path.endsWith(".njs")) {
 				publicPath = publicPath.slice(0, -4);
+			}
+			if(path.endsWith("/index")) {
+				publicPath = publicPath.slice(0, -5);
 			}
 			let publicPathQuery = publicPath;
 			if(!noQueryIndex) {
@@ -231,6 +236,139 @@ const ServeCube = {
 			}
 			if(req.decodedPath !== publicPathQuery) {
 				res.redirect(publicPathQuery);
+			} else if(options.githubSecret && publicPath === options.githubPayloadURL) {
+				const signature = req.get("X-Hub-Signature");
+				if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}` && req.get("X-GitHub-Event") === "push") {
+					const payload = JSON.parse(req.body);
+					const branch = payload.ref.slice(payload.ref.lastIndexOf("/")+1);
+					if(branch === "master") {
+						const files = {};
+						for(let i of payload.commits) {
+							for(let j of i.removed) {
+								files[j] = -1;
+							}
+							for(let j of i.modified) {
+								files[j] = 0;
+							}
+							for(let j of i.added) {
+								files[j] = 1;
+							}
+						}
+						Object.keys(files).forEach(async i => {
+							if(files[i] == -1) {
+								if(fs.existsSync(i)) {
+									fs.unlinkSync(i);
+									const type = mime.getType(i);
+									if(type === "application/javascript" || type === "text/css") {
+										fs.unlinkSync(`${i}.map`);
+									}
+								}
+								let index = i.length;
+								while((index = i.lastIndexOf("/", index)-1) !== -2) {
+									const path = i.slice(0, index+1);
+									if(fs.existsSync(path)) {
+										try {
+											fs.rmdirSync(path);
+										} catch(err) {}
+									}
+								}
+							} else if(files[i] === 0 || files[i] === 1) {
+								let contents = String(new Buffer(JSON.parse(await request.get({
+									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
+									headers: {
+										"User-Agent": "request"
+									}
+								})).content, "base64"));
+								let index = 0;
+								while(index = i.indexOf("/", index)+1) {
+									nextPath = i.slice(0, index-1);
+									if(!fs.existsSync(nextPath)) {
+										fs.mkdirSync(nextPath);
+									}
+								}
+								if(i.startsWith("www/")) {
+									if(i.endsWith(".njs")) {
+										contents = contents.split(/(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g);
+										for(let j = 1; j < contents.length; j += 2) {
+											contents[j] = contents[j].replace(/\n/g, "").replace(/\s+/g, " ");
+										}
+										contents = contents.join("");
+									} else {
+										const type = mime.getType(i);
+										if(type === "application/javascript") {
+											const filename = i.slice(i.lastIndexOf("/")+1);
+											const compiled = babel.transform(contents, {
+												ast: false,
+												comments: false,
+												compact: true,
+												filename,
+												minified: true,
+												presets: ["env"],
+												sourceMaps: true
+											});
+											const result = UglifyJS.minify(compiled.code, {
+												parse: {
+													html5_comments: false
+												},
+												compress: {
+													passes: 2,
+													unsafe_math: true
+												},
+												sourceMap: {
+													content: JSON.stringify(compiled.map),
+													filename
+												}
+											});
+											contents = result.code;
+											fs.writeFileSync(`${i}.map`, result.map);
+										} else if(type === "text/css") {
+											const output = new CleanCSS({
+												inline: false,
+												sourceMap: true
+											}).minify(contents);
+											contents = output.styles;
+											const sourceMap = JSON.parse(output.sourceMap);
+											sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
+											fs.writeFileSync(`${i}.map`, JSON.stringify(sourceMap));
+										}
+									}
+								}
+								fs.writeFileSync(i, contents);
+							}
+							if(readCache[i]) {
+								delete readCache[i];
+							}
+							if(loadCache[i]) {
+								if(loadCache[i] === 2) {
+									Object.keys(loadCache).forEach(j => {
+										if(j.slice(j.indexOf(" ")+1).startsWith(`${i}?`)) {
+											delete loadCache[i];
+										}
+									});
+								}
+								delete loadCache[i];
+							}
+						});
+						for(let v of payload.commits) {
+							for(let i of v.removed) {
+								if(!removed.includes(i)) {
+									removed.push(i);
+								}
+							}
+						}
+						res.send();
+						if(modified.includes("package.json")) {
+							childProcess.spawnSync("npm", ["update"]);
+						}
+						if(modified.includes(process.mainModule.filename.slice(process.cwd().length+1))) {
+							process.exit();
+						}
+					} else {
+						res.send();
+					}
+				} else {
+					res.status(403).send();
+				}
 			} else if(fs.existsSync(path)) {
 				res.set("Content-Type", type);
 				if(path.endsWith(".njs")) {
