@@ -357,10 +357,10 @@ const ServeCube = {
 							}
 						}
 						res.send();
-						if(modified.includes("package.json")) {
+						if(files["package.json"]) {
 							childProcess.spawnSync("npm", ["update"]);
 						}
-						if(modified.includes(process.mainModule.filename.slice(process.cwd().length+1))) {
+						if(files[process.mainModule.filename.slice(process.cwd().length+1)]) {
 							process.exit();
 						}
 					} else {
