@@ -244,13 +244,13 @@ const ServeCube = {
 					if(branch === "master") {
 						const files = {};
 						for(let i of payload.commits) {
-							for(let j of payload.commits.removed) {
+							for(let j of i.removed) {
 								files[j] = -1;
 							}
-							for(let j of payload.commits.modified) {
+							for(let j of i.modified) {
 								files[j] = 0;
 							}
-							for(let j of payload.commits.added) {
+							for(let j of i.added) {
 								files[j] = 1;
 							}
 						}
