@@ -375,10 +375,11 @@ const ServeCube = {
 							let sum = 0;
 							Object.keys(files).forEach(j => sum += files[j]);
 							if(!sum) {
-								if(files["package.json"] === 0) {
+								const packageUpdate = files["package.json"] === 0;
+								if(packageUpdate) {
 									childProcess.spawnSync("npm", ["update"]);
 								}
-								if(files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
+								if(packageUpdate || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
 									process.exit();
 								}
 							}
