@@ -58,15 +58,6 @@ const ServeCube = {
 				options.subdomain = [""];
 			}
 		}
-		if(options.errorRedirect instanceof Object) {
-			Object.keys(options.errorRedirect).forEach(i => {
-				if(!(typeof options.errorRedirect[i] === "string")) {
-					delete options.errorRedirect[i];
-				}
-			});
-		} else {
-			options.errorRedirect = {};
-		}
 		if(!(typeof options.githubSecret === "string")) {
 			options.githubSecret = "";
 		}
@@ -115,7 +106,7 @@ const ServeCube = {
 							req.decodedPath = decodeURIComponent(req.url);
 							req.next();
 						} catch(err) {
-							res.status(400).send("400");
+							renderError(400, req, res);
 						}
 					}
 				}
@@ -124,7 +115,7 @@ const ServeCube = {
 			}
 		});
 		const rawPathCache = val.rawPathCache = {};
-		const getRawPath = val.getRawPath = path => {
+		const getRawPath = val.getRawPath = (path, publicDirectory) => {
 			if(rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
@@ -132,7 +123,7 @@ const ServeCube = {
 				if(!output.startsWith("/")) {
 					output = `/${output}`;
 				}
-				output = `${options.basePath}www${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
+				output = `${options.basePath}${publicDirectory || "www"}${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
 					if(fs.existsSync(output) && fs.statSync(output).isDirectory()) {
 						if(!output.endsWith("/")) {
@@ -155,8 +146,8 @@ const ServeCube = {
 		};
 		const readCache = val.readCache = {};
 		const loadCache = val.loadCache = {};
-		const load = val.load = (path, context) => {
-			const rawPath = getRawPath(path);
+		const load = val.load = (path, context, publicDirectory) => {
+			const rawPath = getRawPath(path, publicDirectory);
 			if(context) {
 				context = {...context};
 				delete context.cache;
@@ -201,16 +192,41 @@ const ServeCube = {
 						resolve(context);
 					};
 					try {
-						const modified = fs.statSync(rawPath).mtimeMs;
 						if(!readCache[rawPath]) {
-							readCache[rawPath] = [modified, options.eval(`(async function() {\n${fs.readFileSync(rawPath)}\n})`)];
+							readCache[rawPath] = options.eval(`(async function() {\n${fs.readFileSync(rawPath)}\n})`);
 						}
-						readCache[rawPath][1].call(context);
+						readCache[rawPath].call(context);
 					} catch(err) {
 						reject(err);
 					}
 				}
 			});
+		};
+		const renderLoad = async (path, req, res, publicDirectory) => {
+			res.set("Cache-Control", "no-cache");
+			res.set("Content-Type", "text/html");
+			const result = await load(path, {
+				req,
+				res
+			}, publicDirectory);
+			if(result.redirect) {
+				res.redirect(result.redirect);
+			} else {
+				if(result.headers) {
+					Object.keys(result.headers).forEach(i => res.set(i, result.headers[i]));
+				}
+				if(result.status) {
+					res.status(result.status);
+				}
+				res.send(result.value);
+			}
+		};
+		const renderError = (status, req, res) => {
+			if(fs.existsSync(`error/${status}.njs`)) {
+				renderLoad(`/${status}`, req, res, "error");
+			} else {
+				res.status(status).send(String(status));
+			}
 		};
 		app.all("*", async (req, res) => {
 			const getMethod = req.method === "GET";
@@ -367,24 +383,12 @@ const ServeCube = {
 						res.send();
 					}
 				} else {
-					res.status(403).send();
+					renderError(503, req, res);
 				}
 			} else if(fs.existsSync(path)) {
 				res.set("Content-Type", type);
 				if(path.endsWith(".njs")) {
-					res.set("Cache-Control", "no-cache");
-					res.set("Content-Type", "text/html");
-					const result = await load(publicPath, {
-						req,
-						res
-					});
-					if(result.headers) {
-						Object.keys(result.headers).forEach(i => res.set(i, result.headers[i]));
-					}
-					if(result.status) {
-						res.status(result.status);
-					}
-					res.send(result.value);
+					renderLoad(publicPath, req, res);
 				} else {
 					if(type === "application/javascript" || type === "text/css") {
 						res.set("SourceMap", `${publicPath.slice(publicPath.lastIndexOf("/")+1)}.map`);
@@ -392,11 +396,7 @@ const ServeCube = {
 					fs.createReadStream(path).pipe(res);
 				}
 			} else {
-				if(getMethod && type === "text/html" && options.errorRedirect[404]) {
-					res.redirect(options.errorRedirect[404]);
-				} else {
-					res.status(404).send("404");
-				}
+				renderError(404, req, res);
 			}
 		});
 		http.createServer(app).listen(options.httpPort);
