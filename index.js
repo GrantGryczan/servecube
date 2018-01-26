@@ -202,7 +202,7 @@ const ServeCube = {
 				}
 			});
 		};
-		const renderLoad = async (path, req, res, publicDirectory) => {
+		const renderLoad = val.renderLoad = async (path, req, res, publicDirectory) => {
 			res.set("Cache-Control", "no-cache");
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
@@ -221,7 +221,7 @@ const ServeCube = {
 				res.send(result.value);
 			}
 		};
-		const renderError = (status, req, res) => {
+		const renderError = val.renderError = (status, req, res) => {
 			if(fs.existsSync(`error/${status}.njs`)) {
 				renderLoad(`/${status}`, req, res, "error");
 			} else {
@@ -229,10 +229,13 @@ const ServeCube = {
 			}
 		};
 		app.all("*", async (req, res) => {
+			if(!options.subdomain.includes(req.subdomain)) {
+				return;
+			}
 			const getMethod = req.method === "GET";
 			if(getMethod) {
 				res.set("Cache-Control", "max-age=86400");
-			} else if(req.method !== "POST" || !options.subdomain.includes(req.subdomain)) {
+			} else if(req.method !== "POST") {
 				return;
 			}
 			const queryIndex = req.decodedPath.indexOf("?");
