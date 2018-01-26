@@ -270,6 +270,13 @@ const ServeCube = {
 								files[j] = 3;
 							}
 						}
+						for(let v of payload.commits) {
+							for(let i of v.removed) {
+								if(!removed.includes(i)) {
+									removed.push(i);
+								}
+							}
+						}
 						Object.keys(files).forEach(async i => {
 							if(files[i] === 1) {
 								if(fs.existsSync(i)) {
@@ -364,21 +371,19 @@ const ServeCube = {
 								}
 								delete loadCache[i];
 							}
-						});
-						for(let v of payload.commits) {
-							for(let i of v.removed) {
-								if(!removed.includes(i)) {
-									removed.push(i);
+							files[i] = 0;
+							let sum = 0;
+							Object.keys(files).forEach(j => sum += files[j]);
+							if(!sum) {
+								if(files["package.json"] === 0) {
+									childProcess.spawnSync("npm", ["update"]);
+								}
+								if(files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
+									process.exit();
 								}
 							}
-						}
+						});
 						res.send();
-						if(files["package.json"]) {
-							childProcess.spawnSync("npm", ["update"]);
-						}
-						if(files[process.mainModule.filename.slice(process.cwd().length+1)]) {
-							process.exit();
-						}
 					} else {
 						res.send();
 					}
