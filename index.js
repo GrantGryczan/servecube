@@ -273,13 +273,6 @@ const ServeCube = {
 								files[j] = 3;
 							}
 						}
-						for(let v of payload.commits) {
-							for(let i of v.removed) {
-								if(!removed.includes(i)) {
-									removed.push(i);
-								}
-							}
-						}
 						Object.keys(files).forEach(async i => {
 							if(files[i] === 1) {
 								if(fs.existsSync(i)) {
