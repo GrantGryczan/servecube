@@ -150,6 +150,7 @@ const ServeCube = {
 						if(context.cache) {
 							if(context.cache === 2) {
 								loadCache[rawPath] = context.cache;
+								cacheIndex += "?";
 								const queryIndex = context.req.url.indexOf("?");
 								if(queryIndex !== -1) {
 									cacheIndex += context.req.url.slice(queryIndex+1);
@@ -353,14 +354,15 @@ const ServeCube = {
 								}
 								fs.writeFileSync(i, contents);
 							}
-							if(readCache[i]) {
-								delete readCache[i];
+							const readCacheIndex = `${options.basePath}${i}`;
+							if(readCache[readCacheIndex]) {
+								delete readCache[readCacheIndex];
 							}
 							if(loadCache[i]) {
 								if(loadCache[i] === 2) {
 									Object.keys(loadCache).forEach(j => {
 										if(j.slice(j.indexOf(" ")+1).startsWith(`${i}?`)) {
-											delete loadCache[i];
+											delete loadCache[j];
 										}
 									});
 								}
