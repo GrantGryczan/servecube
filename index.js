@@ -330,8 +330,7 @@ const ServeCube = {
 													html5_comments: false
 												},
 												compress: {
-													passes: 2,
-													unsafe_math: true
+													passes: 2
 												},
 												sourceMap: {
 													content: JSON.stringify(compiled.map),
