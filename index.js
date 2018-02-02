@@ -354,19 +354,19 @@ const ServeCube = {
 								}
 								fs.writeFileSync(i, contents);
 							}
-							const readCacheIndex = `${options.basePath}${i}`;
-							if(readCache[readCacheIndex]) {
-								delete readCache[readCacheIndex];
+							const cacheIndex = `${options.basePath}${i}`;
+							if(readCache[cacheIndex]) {
+								delete readCache[cacheIndex];
 							}
-							if(loadCache[i]) {
-								if(loadCache[i] === 2) {
+							if(loadCache[cacheIndex]) {
+								if(loadCache[cacheIndex] === 2) {
 									Object.keys(loadCache).forEach(j => {
-										if(j.slice(j.indexOf(" ")+1).startsWith(`${i}?`)) {
+										if(j.slice(j.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
 											delete loadCache[j];
 										}
 									});
 								}
-								delete loadCache[i];
+								delete loadCache[cacheIndex];
 							}
 							files[i] = 0;
 							let sum = 0;
