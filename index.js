@@ -293,12 +293,13 @@ const ServeCube = {
 									}
 								}
 							} else if(files[i] === 2 || files[i] === 3) {
-								let contents = String(new Buffer(JSON.parse(await request.get({
+								const file = JSON.parse(await request.get({
 									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
 									headers: {
 										"User-Agent": "request"
 									}
-								})).content, "base64"));
+								}));
+								let contents = String(Buffer.from(file.content, file.encoding));
 								let index = 0;
 								while(index = i.indexOf("/", index)+1) {
 									nextPath = i.slice(0, index-1);
