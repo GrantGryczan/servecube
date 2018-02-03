@@ -296,61 +296,61 @@ const ServeCube = {
 								const file = JSON.parse(await request.get({
 									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
 									headers: {
-										"User-Agent": "request"
+										"User-Agent": "ServeCube"
 									}
 								}));
-								let contents = String(Buffer.from(file.content, file.encoding));
+								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
 								while(index = i.indexOf("/", index)+1) {
 									nextPath = i.slice(0, index-1);
-									if(!fs.existsSync(nextPath)) {
+									if(fs.existsSync(nextPath)) {
+										break;
+									} else {
 										fs.mkdirSync(nextPath);
 									}
 								}
-								if(i.startsWith("www/")) {
-									if(i.endsWith(".njs")) {
-										contents = contents.split(/(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g);
-										for(let j = 1; j < contents.length; j += 2) {
-											contents[j] = contents[j].replace(/\n/g, "").replace(/\s+/g, " ");
-										}
-										contents = contents.join("");
-									} else {
-										const type = mime.getType(i);
-										if(type === "application/javascript") {
-											const filename = i.slice(i.lastIndexOf("/")+1);
-											const compiled = babel.transform(contents, {
-												ast: false,
-												comments: false,
-												compact: true,
-												filename,
-												minified: true,
-												presets: ["env"],
-												sourceMaps: true
-											});
-											const result = UglifyJS.minify(compiled.code, {
-												parse: {
-													html5_comments: false
-												},
-												compress: {
-													passes: 2
-												},
-												sourceMap: {
-													content: JSON.stringify(compiled.map),
-													filename
-												}
-											});
-											contents = result.code;
-											fs.writeFileSync(`${i}.map`, result.map);
-										} else if(type === "text/css") {
-											const output = new CleanCSS({
-												inline: false,
-												sourceMap: true
-											}).minify(contents);
-											contents = output.styles;
-											const sourceMap = JSON.parse(output.sourceMap);
-											sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
-											fs.writeFileSync(`${i}.map`, JSON.stringify(sourceMap));
-										}
+								if(i.endsWith(".njs")) {
+									contents = String(contents).split(/(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g);
+									for(let j = 1; j < contents.length; j += 2) {
+										contents[j] = contents[j].replace(/\n/g, "").replace(/\s+/g, " ");
+									}
+									contents = contents.join("");
+								} else if(i.startsWith("www/")) {
+									const type = mime.getType(i);
+									if(type === "application/javascript") {
+										const filename = i.slice(i.lastIndexOf("/")+1);
+										const compiled = babel.transform(String(contents), {
+											ast: false,
+											comments: false,
+											compact: true,
+											filename,
+											minified: true,
+											presets: ["env"],
+											sourceMaps: true
+										});
+										const result = UglifyJS.minify(compiled.code, {
+											parse: {
+												html5_comments: false
+											},
+											compress: {
+												passes: 2
+											},
+											sourceMap: {
+												content: JSON.stringify(compiled.map),
+												filename
+											}
+										});
+										contents = result.code;
+										fs.writeFileSync(`${i}.map`, result.map);
+									} else if(type === "text/css") {
+										const output = new CleanCSS({
+											inline: false,
+											sourceMap: true
+										}).minify(String(contents));
+										contents = output.styles;
+										const sourceMap = JSON.parse(output.sourceMap);
+										sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
+										fs.writeFileSync(`${i}.map`, JSON.stringify(sourceMap));
 									}
 								}
 								fs.writeFileSync(i, contents);
