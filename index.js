@@ -289,7 +289,9 @@ const ServeCube = {
 									if(fs.existsSync(path)) {
 										try {
 											fs.rmdirSync(path);
-										} catch(err) {}
+										} catch(err) {
+											break;
+										}
 									}
 								}
 							} else if(files[i] === 2 || files[i] === 3) {
@@ -303,9 +305,7 @@ const ServeCube = {
 								let index = 0;
 								while(index = i.indexOf("/", index)+1) {
 									nextPath = i.slice(0, index-1);
-									if(fs.existsSync(nextPath)) {
-										break;
-									} else {
+									if(!fs.existsSync(nextPath)) {
 										fs.mkdirSync(nextPath);
 									}
 								}
