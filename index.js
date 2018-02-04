@@ -206,6 +206,22 @@ const ServeCube = {
 				res.status(status).send(String(status));
 			}
 		};
+		const clearCache = cube.clearCache = path => {
+			const cacheIndex = `${options.basePath}${path}`;
+			if(readCache[cacheIndex]) {
+				delete readCache[cacheIndex];
+			}
+			if(loadCache[cacheIndex]) {
+				if(loadCache[cacheIndex] === 2) {
+					Object.keys(loadCache).forEach(i => {
+						if(i.slice(i.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
+							delete loadCache[i];
+						}
+					});
+				}
+				delete loadCache[cacheIndex];
+			}
+		};
 		app.use((req, res) => {
 			res.set("X-Magic", "real");
 			res.set("Access-Control-Expose-Headers", "X-Magic");
@@ -359,20 +375,7 @@ const ServeCube = {
 								}
 								fs.writeFileSync(i, contents);
 							}
-							const cacheIndex = `${options.basePath}${i}`;
-							if(readCache[cacheIndex]) {
-								delete readCache[cacheIndex];
-							}
-							if(loadCache[cacheIndex]) {
-								if(loadCache[cacheIndex] === 2) {
-									Object.keys(loadCache).forEach(j => {
-										if(j.slice(j.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
-											delete loadCache[j];
-										}
-									});
-								}
-								delete loadCache[cacheIndex];
-							}
+							clearCache(i);
 							files[i] = 0;
 							let sum = 0;
 							Object.keys(files).forEach(j => sum += files[j]);
