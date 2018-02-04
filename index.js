@@ -27,11 +27,11 @@ const ServeCube = {
 		return string;
 	},
 	serve: o => {
-		const val = {};
+		const cube = {};
 		if(!o) {
 			o = {};
 		}
-		const options = {...o};
+		const options = cube.options = {...o};
 		if(!(typeof options.eval === "function")) {
 			options.eval = eval;
 		}
@@ -65,7 +65,7 @@ const ServeCube = {
 		if(!(typeof options.githubSecret === "string")) {
 			options.githubSecret = "";
 		}
-		const app = val.app = express();
+		const app = cube.app = express();
 		app.set("trust proxy", true);
 		app.use(cookieParser());
 		app.use(bodyParser.raw({
@@ -87,8 +87,8 @@ const ServeCube = {
 			})
 		}));
 		*/
-		const rawPathCache = val.rawPathCache = {};
-		const getRawPath = val.getRawPath = (path, publicDirectory) => {
+		const rawPathCache = cube.rawPathCache = {};
+		const getRawPath = cube.getRawPath = (path, publicDirectory) => {
 			if(rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
@@ -117,9 +117,9 @@ const ServeCube = {
 				return rawPathCache[path] = output;
 			}
 		};
-		const readCache = val.readCache = {};
-		const loadCache = val.loadCache = {};
-		const load = val.load = (path, context, publicDirectory) => {
+		const readCache = cube.readCache = {};
+		const loadCache = cube.loadCache = {};
+		const load = cube.load = (path, context, publicDirectory) => {
 			const rawPath = getRawPath(path, publicDirectory);
 			if(context) {
 				context = {...context};
@@ -176,7 +176,7 @@ const ServeCube = {
 				}
 			});
 		};
-		const renderLoad = val.renderLoad = async (path, req, res, publicDirectory) => {
+		const renderLoad = cube.renderLoad = async (path, req, res, publicDirectory) => {
 			res.set("Cache-Control", "no-cache");
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
@@ -195,7 +195,7 @@ const ServeCube = {
 				res.send(result.value);
 			}
 		};
-		const renderError = val.renderError = (status, req, res) => {
+		const renderError = cube.renderError = (status, req, res) => {
 			if(fs.existsSync(`error/${status}.njs`)) {
 				renderLoad(`/${status}`, req, res, "error");
 			} else {
@@ -407,7 +407,7 @@ const ServeCube = {
 		if(options.tls) {
 			https.createServer(options.tls, app).listen(options.httpsPort);
 		}
-		return val;
+		return cube;
 	}
 };
 module.exports = ServeCube;
