@@ -184,7 +184,11 @@ const ServeCube = {
 				res
 			}, publicDirectory);
 			if(result.redirect) {
-				res.redirect(result.redirect);
+				if(result.status) {
+					res.redirect(result.status, result.redirect);
+				} else {
+					res.redirect(result.redirect);
+				}
 			} else {
 				if(result.headers) {
 					Object.keys(result.headers).forEach(i => {
