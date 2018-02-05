@@ -98,16 +98,16 @@ const ServeCube = {
 				}
 				output = `${options.basePath}${publicDirectory || "www"}${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
+					let addend = "";
 					if(fs.existsSync(output) && fs.statSync(output).isDirectory()) {
 						if(!output.endsWith("/")) {
 							output += "/";
 						}
-						output += "index.njs";
-					} else {
-						const outputFile = `${output}.njs`;
-						if(fs.existsSync(outputFile) && !fs.statSync(outputFile).isDirectory()) {
-							output = outputFile;
-						}
+						addend = "index";
+					}
+					let newOutput;
+					if((fs.existsSync(newOutput = `${output}${addend}.njs`) && !fs.statSync(newOutput).isDirectory()) || (fs.existsSync(newOutput = `${output}${addend}.html`) && !fs.statSync(newOutput).isDirectory()) || (fs.existsSync(newOutput = `${output}${addend}.htm`) && !fs.statSync(newOutput).isDirectory())) {
+						output = newOutput;
 					}
 				}
 				const keys = Object.keys(rawPathCache);
@@ -177,7 +177,6 @@ const ServeCube = {
 			});
 		};
 		const renderLoad = cube.renderLoad = async (path, req, res, publicDirectory) => {
-			res.set("Cache-Control", "no-cache");
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
 				req,
@@ -204,7 +203,7 @@ const ServeCube = {
 			}
 		};
 		const renderError = cube.renderError = (status, req, res) => {
-			if(fs.existsSync(`error/${status}.njs`)) {
+			if(fs.existsSync(`error/${status}.njs`) || fs.existsSync(`error/${status}.html`) || fs.existsSync(`error/${status}.htm`)) {
 				renderLoad(`/${status}`, req, res, "error");
 			} else {
 				res.status(status).send(String(status));
@@ -212,6 +211,11 @@ const ServeCube = {
 		};
 		const clearCache = cube.clearCache = path => {
 			const cacheIndex = `${options.basePath}${path}`;
+			Object.keys(rawPathCache).forEach(i => {
+				if(rawPathCache[i] === cacheIndex) {
+					delete rawPathCache[i];
+				}
+			});
 			if(readCache[cacheIndex]) {
 				delete readCache[cacheIndex];
 			}
@@ -268,8 +272,10 @@ const ServeCube = {
 			const path = getRawPath(noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex));
 			const type = path.lastIndexOf("/") > path.lastIndexOf(".") ? "text/plain" : mime.getType(path);
 			let publicPath = path.slice(options.basePath.length+3);
-			if(publicPath.endsWith(".njs")) {
+			if(publicPath.endsWith(".njs") || publicPath.endsWith(".htm")) {
 				publicPath = publicPath.slice(0, -4);
+			} else if(publicPath.endsWith(".html")) {
+				publicPath = publicPath.slice(0, -5);
 			}
 			if(publicPath.endsWith("/index")) {
 				publicPath = publicPath.slice(0, -5);
@@ -333,12 +339,15 @@ const ServeCube = {
 										fs.mkdirSync(nextPath);
 									}
 								}
+								// TODO: Don't minify content in `textarea` and `style` tags.
 								if(i.endsWith(".njs")) {
 									contents = String(contents).split(/(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g);
 									for(let j = 1; j < contents.length; j += 2) {
 										contents[j] = contents[j].replace(/\n/g, "").replace(/\s+/g, " ");
 									}
 									contents = contents.join("");
+								} else if(i.endsWith(".html") || i.endsWith(".htm")) {
+									contents = contents.replace(/\n/g, "").replace(/\s+/g, " ");
 								} else if(i.startsWith("www/")) {
 									const type = mime.getType(i);
 									if(type === "application/javascript") {
