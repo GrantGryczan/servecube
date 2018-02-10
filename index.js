@@ -28,28 +28,28 @@ const ServeCube = {
 	},
 	serve: o => {
 		const cube = {};
-		if(!o) {
+		if(!(o instanceof Object)) {
 			o = {};
 		}
 		const options = cube.options = {...o};
-		if(!(typeof options.eval === "function")) {
+		if(!(options.eval instanceof Function)) {
 			options.eval = eval;
 		}
-		if(!(typeof options.hostname === "string")) {
+		if(typeof options.hostname !== "string") {
 			options.hostname = os.hostname();
 		}
-		if(!(typeof options.basePath === "string")) {
+		if(typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
 		}
 		options.basePath = options.basePath.replace(/\\/g, "/");
-		if(!(typeof options.serverPath === "string")) {
+		if(typeof options.serverPath !== "string") {
 			options.serverPath = "server.js";
 		}
-		if(!(typeof options.httpPort === "number")) {
+		if(typeof options.httpPort !== "number") {
 			options.httpPort = 8080;
 		}
 		if(options.tls instanceof Object) {
-			if(!(typeof options.httpsPort === "number")) {
+			if(typeof options.httpsPort !== "number") {
 				options.httpsPort = 8443;
 			}
 		} else {
@@ -62,9 +62,10 @@ const ServeCube = {
 				options.subdomain = [""];
 			}
 		}
-		if(!(typeof options.githubSecret === "string")) {
+		if(typeof options.githubSecret !== "string") {
 			options.githubSecret = "";
 		}
+		options.uncacheModified = !!options.uncacheModified;
 		const app = cube.app = express();
 		app.set("trust proxy", true);
 		app.use(cookieParser());
@@ -88,6 +89,29 @@ const ServeCube = {
 		}));
 		*/
 		const rawPathCache = cube.rawPathCache = {};
+		const readCache = cube.readCache = {};
+		const loadCache = cube.loadCache = {};
+		const datesModified = cube.datesModified = {};
+		const uncache = cube.uncache = cacheIndex => {
+			Object.keys(rawPathCache).forEach(i => {
+				if(rawPathCache[i] === cacheIndex) {
+					delete rawPathCache[i];
+				}
+			});
+			if(readCache[cacheIndex]) {
+				delete readCache[cacheIndex];
+			}
+			if(loadCache[cacheIndex]) {
+				if(loadCache[cacheIndex] === 2) {
+					Object.keys(loadCache).forEach(i => {
+						if(i.slice(i.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
+							delete loadCache[i];
+						}
+					});
+				}
+				delete loadCache[cacheIndex];
+			}
+		};
 		const getRawPath = cube.getRawPath = (path, publicDirectory) => {
 			if(rawPathCache[path]) {
 				return rawPathCache[path];
@@ -117,10 +141,15 @@ const ServeCube = {
 				return rawPathCache[path] = output;
 			}
 		};
-		const readCache = cube.readCache = {};
-		const loadCache = cube.loadCache = {};
 		const load = cube.load = (path, context, publicDirectory) => {
 			const rawPath = getRawPath(path, publicDirectory);
+			if(options.uncacheModified) {
+				const {mtimeMs} = fs.statSync(rawPath);
+				if(datesModified[rawPath] !== undefined && mtimeMs > datesModified[rawPath]) {
+					uncache(rawPath);
+				}
+				datesModified[rawPath] = mtimeMs;
+			}
 			if(context) {
 				context = {...context};
 				delete context.cache;
@@ -207,27 +236,6 @@ const ServeCube = {
 				renderLoad(`/${status}`, req, res, "error");
 			} else {
 				res.status(status).send(String(status));
-			}
-		};
-		const uncache = cube.uncache = path => {
-			const cacheIndex = `${options.basePath}${path}`;
-			Object.keys(rawPathCache).forEach(i => {
-				if(rawPathCache[i] === cacheIndex) {
-					delete rawPathCache[i];
-				}
-			});
-			if(readCache[cacheIndex]) {
-				delete readCache[cacheIndex];
-			}
-			if(loadCache[cacheIndex]) {
-				if(loadCache[cacheIndex] === 2) {
-					Object.keys(loadCache).forEach(i => {
-						if(i.slice(i.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
-							delete loadCache[i];
-						}
-					});
-				}
-				delete loadCache[cacheIndex];
 			}
 		};
 		app.use((req, res) => {
@@ -388,7 +396,7 @@ const ServeCube = {
 								}
 								fs.writeFileSync(i, contents);
 							}
-							uncache(i);
+							uncache(`${options.basePath}${i}`);
 							files[i] = 0;
 							let sum = 0;
 							Object.keys(files).forEach(j => sum += files[j]);
