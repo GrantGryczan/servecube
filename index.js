@@ -339,7 +339,7 @@ const ServeCube = {
 										fs.mkdirSync(nextPath);
 									}
 								}
-								// TODO: Don't minify content in `textarea` and `style` tags.
+								// TODO: Don't minify content in `textarea` and `pre` tags.
 								if(i.endsWith(".njs")) {
 									contents = String(contents).split(/(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g);
 									for(let j = 1; j < contents.length; j += 2) {
