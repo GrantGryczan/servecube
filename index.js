@@ -209,7 +209,7 @@ const ServeCube = {
 				res.status(status).send(String(status));
 			}
 		};
-		const clearCache = cube.clearCache = path => {
+		const uncache = cube.uncache = path => {
 			const cacheIndex = `${options.basePath}${path}`;
 			Object.keys(rawPathCache).forEach(i => {
 				if(rawPathCache[i] === cacheIndex) {
@@ -388,7 +388,7 @@ const ServeCube = {
 								}
 								fs.writeFileSync(i, contents);
 							}
-							clearCache(i);
+							uncache(i);
 							files[i] = 0;
 							let sum = 0;
 							Object.keys(files).forEach(j => sum += files[j]);
