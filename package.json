@@ -5,14 +5,14 @@
 	"main": "index.js",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Miroware8/servecube.git"
+		"url": "git+https://github.com/GrantGryczan/servecube.git"
 	},
 	"author": "Grant Gryczan",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/Miroware8/servecube/issues"
+		"url": "https://github.com/GrantGryczan/servecube/issues"
 	},
-	"homepage": "https://github.com/Miroware8/servecube#readme",
+	"homepage": "https://github.com/GrantGryczan/servecube#readme",
 	"dependencies": {
 		"babel-core": "^6.26.0",
 		"babel-preset-env": "^1.6.1",
