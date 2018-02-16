@@ -249,7 +249,7 @@ const ServeCube = {
 					enumerable: true
 				});
 			}
-			if(req.protocol === "http") {
+			if(options.tls && req.protocol === "http") {
 				res.redirect(`https://${host + req.url}`);
 			} else {
 				req.subdomain = req.subdomains.join(".");
