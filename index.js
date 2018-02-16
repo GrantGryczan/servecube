@@ -1,4 +1,3 @@
-const os = require("os");
 const fs = require("fs");
 const http = require("http");
 const https = require("https");
@@ -35,8 +34,8 @@ const ServeCube = {
 		if(!(options.eval instanceof Function)) {
 			options.eval = eval;
 		}
-		if(typeof options.hostname !== "string") {
-			options.hostname = os.hostname();
+		if(typeof options.domain !== "string") {
+			throw new TypeError("ServeCube: The \"domain\" option must be defined.");
 		}
 		if(typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
@@ -243,7 +242,8 @@ const ServeCube = {
 			res.set("X-Magic", "real");
 			res.set("Access-Control-Expose-Headers", "X-Magic");
 			res.set("Access-Control-Allow-Origin", "*");
-			const host = req.get("Host") || (req.subdomain ? `${req.subdomain}.` : "") + options.hostname;
+			req.subdomain = req.subdomains.join(".");
+			const host = req.get("Host") || (req.subdomain ? `${req.subdomain}.` : "") + options.domain;
 			if(host.startsWith("localhost:")) {
 				Object.defineProperty(req, "protocol", {
 					value: "https",
@@ -253,7 +253,6 @@ const ServeCube = {
 			if(options.httpsRedirect && req.protocol === "http") {
 				res.redirect(`https://${host + req.url}`);
 			} else {
-				req.subdomain = req.subdomains.join(".");
 				if(req.subdomain === "www") {
 					res.redirect(`${req.protocol}://${host.slice(4) + req.url}`);
 				} else {
