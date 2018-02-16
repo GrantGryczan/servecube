@@ -55,6 +55,7 @@ const ServeCube = {
 		} else {
 			delete options.tls;
 		}
+		options.httpsRedirect = options.httpsRedirect === false ? false : !!(options.httpsRedirect || options.tls);
 		if(!(options.subdomain instanceof Array)) {
 			if(typeof options.subdomain === "string") {
 				options.subdomain = [options.subdomain];
@@ -249,7 +250,7 @@ const ServeCube = {
 					enumerable: true
 				});
 			}
-			if(options.tls && req.protocol === "http") {
+			if(options.httpsRedirect && req.protocol === "http") {
 				res.redirect(`https://${host + req.url}`);
 			} else {
 				req.subdomain = req.subdomains.join(".");
