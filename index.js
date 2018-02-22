@@ -83,21 +83,21 @@ const ServeCube = {
 		const loadCache = cube.loadCache = {};
 		const datesModified = cube.datesModified = {};
 		const uncache = cube.uncache = cacheIndex => {
-			Object.keys(rawPathCache).forEach(i => {
+			for(let i of Object.keys(rawPathCache)) {
 				if(rawPathCache[i] === cacheIndex) {
 					delete rawPathCache[i];
 				}
-			});
+			}
 			if(readCache[cacheIndex]) {
 				delete readCache[cacheIndex];
 			}
 			if(loadCache[cacheIndex]) {
 				if(loadCache[cacheIndex] === 2) {
-					Object.keys(loadCache).forEach(i => {
+					for(let i of Object.keys(loadCache)) {
 						if(i.slice(i.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
 							delete loadCache[i];
 						}
-					});
+					}
 				}
 				delete loadCache[cacheIndex];
 			}
@@ -176,11 +176,11 @@ const ServeCube = {
 								}
 							}
 							loadCache[cacheIndex] = {};
-							Object.keys(context).forEach(i => {
+							for(let i of Object.keys(context)) {
 								if(!properties.includes(i)) {
 									loadCache[cacheIndex][i] = context[i];
 								}
-							});
+							}
 						}
 						resolve(context);
 					};
@@ -209,11 +209,11 @@ const ServeCube = {
 				}
 			} else {
 				if(result.headers) {
-					Object.keys(result.headers).forEach(i => {
+					for(let i of Object.keys(result.headers)) {
 						if(result.headers[i]) {
 							res.set(i, result.headers[i]);
 						}
-					});
+					}
 				}
 				if(result.status) {
 					res.status(result.status);
