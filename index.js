@@ -302,7 +302,7 @@ const ServeCube = {
 								files[j] = 3;
 							}
 						}
-						Object.keys(files).forEach(async i => {
+						for(let i of Object.keys(files)) {
 							if(files[i] === 1) {
 								if(fs.existsSync(i)) {
 									fs.unlinkSync(i);
@@ -389,7 +389,9 @@ const ServeCube = {
 							uncache(`${options.basePath}${i}`);
 							files[i] = 0;
 							let sum = 0;
-							Object.keys(files).forEach(j => sum += files[j]);
+							for(let j of Object.keys(files)) {
+								sum += files[j];
+							}
 							if(!sum) {
 								const packageUpdate = files["package.json"] === 0;
 								if(packageUpdate || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
@@ -399,7 +401,7 @@ const ServeCube = {
 									process.exit();
 								}
 							}
-						});
+						}
 						res.send();
 					} else {
 						res.send();
