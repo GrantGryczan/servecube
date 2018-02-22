@@ -3,8 +3,6 @@ const http = require("http");
 const https = require("https");
 const request = require("request-promise-native");
 const express = require("express");
-const session = require("express-session");
-//const RedisStore = require("connect-redis")(session);
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const childProcess = require("child_process");
@@ -73,21 +71,13 @@ const ServeCube = {
 			limit: "100mb",
 			type: "*/*"
 		}));
-		/* TODO
-		app.use(session({
-			name: "session",
-			secret: options.sessionSecret,
-			resave: false,
-			saveUninitialized: false,
-			cookie: {
-				secure: true,
-				maxAge: 604800000
-			},
-			store: new RedisStore({
-				
-			})
-		}));
-		*/
+		if(options.middleware instanceof Array) {
+			for(let i of options.middleware) {
+				if(i instanceof Function) {
+					app.use(i);
+				}
+			}
+		}
 		const rawPathCache = cube.rawPathCache = {};
 		const readCache = cube.readCache = {};
 		const loadCache = cube.loadCache = {};
@@ -161,9 +151,9 @@ const ServeCube = {
 			const properties = ["exit", "req", "res", Object.keys(context)];
 			context.value = "";
 			return new Promise((resolve, reject) => {
-				let cacheIndex = `${context.req.method} ${rawPath}`;
+				let cacheIndex = rawPath;
 				if(loadCache[cacheIndex] === 2) {
-					cacheIndex += "?";
+					cacheIndex = `${context.req.method} ${cacheIndex}?`;
 					const queryIndex = context.req.url.indexOf("?");
 					if(queryIndex !== -1) {
 						cacheIndex += context.req.url.slice(queryIndex+1);
@@ -179,7 +169,7 @@ const ServeCube = {
 						if(context.cache) {
 							if(context.cache === 2) {
 								loadCache[rawPath] = context.cache;
-								cacheIndex += "?";
+								cacheIndex = `${context.req.method} ${cacheIndex}?`;
 								const queryIndex = context.req.url.indexOf("?");
 								if(queryIndex !== -1) {
 									cacheIndex += context.req.url.slice(queryIndex+1);
