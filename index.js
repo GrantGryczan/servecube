@@ -120,7 +120,7 @@ const ServeCube = {
 						addend = "index";
 					}
 					let newOutput;
-					if((fs.existsSync(newOutput = `${output}${addend}.njs`) && !fs.statSync(newOutput).isDirectory()) || (fs.existsSync(newOutput = `${output}${addend}.html`) && !fs.statSync(newOutput).isDirectory()) || (fs.existsSync(newOutput = `${output}${addend}.htm`) && !fs.statSync(newOutput).isDirectory())) {
+					if((fs.existsSync(newOutput = `${output}${addend}.njs`) && fs.statSync(newOutput).isFile()) || (fs.existsSync(newOutput = `${output}${addend}.html`) && fs.statSync(newOutput).isFile()) || (fs.existsSync(newOutput = `${output}${addend}.htm`) && !fs.statSync(newOutput).isDirectory())) {
 						output = newOutput;
 					}
 				}
