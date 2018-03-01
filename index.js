@@ -103,7 +103,7 @@ const ServeCube = {
 			}
 		};
 		const getRawPath = cube.getRawPath = (path, publicDirectory) => {
-			if(rawPathCache[path]) {
+			if(!publicDirectory && rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
 				let output = path;
@@ -113,7 +113,8 @@ const ServeCube = {
 				output = `${options.basePath}${publicDirectory || "www"}${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
 					let addend = "";
-					if(fs.existsSync(output) && fs.statSync(output).isDirectory()) {
+					let isDir = false;
+					if(fs.existsSync(output) && (isDir = fs.statSync(output).isDirectory())) {
 						if(!output.endsWith("/")) {
 							output += "/";
 						}
@@ -122,13 +123,15 @@ const ServeCube = {
 					let newOutput;
 					if((fs.existsSync(newOutput = `${output}${addend}.njs`) && fs.statSync(newOutput).isFile()) || (fs.existsSync(newOutput = `${output}${addend}.html`) && fs.statSync(newOutput).isFile()) || (fs.existsSync(newOutput = `${output}${addend}.htm`) && !fs.statSync(newOutput).isDirectory())) {
 						output = newOutput;
+					} else if(isDir) {
+						output += `${addend}.njs`;
 					}
 				}
 				const keys = Object.keys(rawPathCache);
 				if(keys.length > 100) {
 					delete rawPathCache[keys[0]];
 				}
-				return rawPathCache[path] = output;
+				return (publicDirectory && output) || (rawPathCache[path] = output);
 			}
 		};
 		const load = cube.load = (path, context, publicDirectory) => {
@@ -222,7 +225,9 @@ const ServeCube = {
 			}
 		};
 		const renderError = cube.renderError = (status, req, res) => {
-			if(fs.existsSync(`error/${status}.njs`) || fs.existsSync(`error/${status}.html`) || fs.existsSync(`error/${status}.htm`)) {
+			const path = `${options.basePath}error/${status}`;
+			let newPath;
+			if((fs.existsSync(newPath = `${path}.njs`) && fs.statSync(newPath).isFile()) || (fs.existsSync(newPath = `${path}.html`) && fs.statSync(newPath).isFile()) || (fs.existsSync(newPath = `${path}.htm`) && !fs.statSync(newPath).isDirectory())) {
 				renderLoad(`/${status}`, req, res, "error");
 			} else {
 				res.status(status).send(String(status));
