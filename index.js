@@ -392,22 +392,15 @@ const ServeCube = {
 								fs.writeFileSync(i, contents);
 							}
 							uncache(`${options.basePath}${i}`);
-							files[i] = 0;
-							let sum = 0;
-							for(let j of Object.keys(files)) {
-								sum += files[j];
-							}
-							if(!sum) {
-								const packageUpdate = files["package.json"] === 0;
-								if(packageUpdate || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
-									if(packageUpdate) {
-										childProcess.spawnSync("npm", ["update"]);
-									}
-									process.exit();
-								}
 							}
 						}
 						res.send();
+						if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
+							if(files["package.json"]) {
+								childProcess.spawnSync("npm", ["update"]);
+							}
+							process.exit();
+						}
 					} else {
 						res.send();
 					}
