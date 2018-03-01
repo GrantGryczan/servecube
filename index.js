@@ -392,7 +392,6 @@ const ServeCube = {
 								fs.writeFileSync(i, contents);
 							}
 							uncache(`${options.basePath}${i}`);
-							}
 						}
 						res.send();
 						if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
