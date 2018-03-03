@@ -64,6 +64,9 @@ const ServeCube = {
 			options.githubSecret = "";
 		}
 		options.uncacheModified = !!options.uncacheModified;
+		if(typeof options.rawPathCacheLimit !== "number") {
+			options.rawPathCacheLimit = 100;
+		}
 		const app = cube.app = express();
 		app.set("trust proxy", true);
 		app.use(cookieParser());
@@ -128,7 +131,7 @@ const ServeCube = {
 					}
 				}
 				const keys = Object.keys(rawPathCache);
-				if(keys.length > 100) {
+				while(keys.length >= options.rawPathCacheLimit) {
 					delete rawPathCache[keys[0]];
 				}
 				return (publicDirectory && output) || (rawPathCache[path] = output);
