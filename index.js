@@ -75,9 +75,9 @@ const ServeCube = {
 			type: "*/*"
 		}));
 		if(options.middleware instanceof Array) {
-			for(let i of options.middleware) {
-				if(i instanceof Function) {
-					app.use(i);
+			for(const v of options.middleware) {
+				if(v instanceof Function) {
+					app.use(v);
 				}
 			}
 		}
@@ -86,7 +86,7 @@ const ServeCube = {
 		const loadCache = cube.loadCache = {};
 		const datesModified = cube.datesModified = {};
 		const uncache = cube.uncache = cacheIndex => {
-			for(let i of Object.keys(rawPathCache)) {
+			for(const i of Object.keys(rawPathCache)) {
 				if(rawPathCache[i] === cacheIndex) {
 					delete rawPathCache[i];
 				}
@@ -96,7 +96,7 @@ const ServeCube = {
 			}
 			if(loadCache[cacheIndex]) {
 				if(loadCache[cacheIndex] === 2) {
-					for(let i of Object.keys(loadCache)) {
+					for(const i of Object.keys(loadCache)) {
 						if(i.slice(i.indexOf(" ")+1).startsWith(`${cacheIndex}?`)) {
 							delete loadCache[i];
 						}
@@ -182,7 +182,7 @@ const ServeCube = {
 								}
 							}
 							loadCache[cacheIndex] = {};
-							for(let i of Object.keys(context)) {
+							for(const i of Object.keys(context)) {
 								if(!properties.includes(i)) {
 									loadCache[cacheIndex][i] = context[i];
 								}
@@ -215,7 +215,7 @@ const ServeCube = {
 				}
 			} else {
 				if(result.headers) {
-					for(let i of Object.keys(result.headers)) {
+					for(const i of Object.keys(result.headers)) {
 						if(result.headers[i]) {
 							res.set(i, result.headers[i]);
 						}
@@ -299,18 +299,18 @@ const ServeCube = {
 					const branch = payload.ref.slice(payload.ref.lastIndexOf("/")+1);
 					if(branch === "master") {
 						const files = {};
-						for(let i of payload.commits) {
-							for(let j of i.removed) {
-								files[j] = 1;
+						for(const v of payload.commits) {
+							for(const w of v.removed) {
+								files[w] = 1;
 							}
-							for(let j of i.modified) {
-								files[j] = 2;
+							for(const w of v.modified) {
+								files[w] = 2;
 							}
-							for(let j of i.added) {
-								files[j] = 3;
+							for(const w of v.added) {
+								files[w] = 3;
 							}
 						}
-						for(let i of Object.keys(files)) {
+						for(const i of Object.keys(files)) {
 							if(files[i] === 1) {
 								if(fs.existsSync(i)) {
 									fs.unlinkSync(i);
