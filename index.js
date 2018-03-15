@@ -19,7 +19,7 @@ const ServeCube = {
 		let string = arguments[0][0];
 		const substitutions = Array.prototype.slice.call(arguments, 1);
 		for(let i = 0; i < substitutions.length; i++) {
-			string += String(substitutions[i]).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/&/g, "&amp;").replace(/\//g, "&#47;").replace(/`/g, "&#96;") + arguments[0][i+1];
+			string += String(substitutions[i]).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/`/g, "&#96;").replace(/&/g, "&amp;").replace(/\//g, "&#47;") + arguments[0][i+1];
 		}
 		return string;
 	},
