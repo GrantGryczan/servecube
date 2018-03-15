@@ -239,7 +239,7 @@ const ServeCube = {
 		app.use((req, res) => {
 			res.set("X-Magic", "real");
 			res.set("Access-Control-Expose-Headers", "X-Magic");
-			res.set("Access-Control-Allow-Origin", "*");
+			res.set("X-Frame-Options", "SAMEORIGIN");
 			req.subdomain = req.subdomains.join(".");
 			const host = req.get("Host") || (req.subdomain ? `${req.subdomain}.` : "") + options.domain;
 			if(host.startsWith("localhost:")) {
