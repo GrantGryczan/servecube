@@ -3,8 +3,6 @@ const http = require("http");
 const https = require("https");
 const request = require("request-promise-native");
 const express = require("express");
-const cookieParser = require("cookie-parser");
-const bodyParser = require("body-parser");
 const childProcess = require("child_process");
 const crypto = require("crypto");
 const babel = require("babel-core");
@@ -19,16 +17,13 @@ const ServeCube = {
 		let string = arguments[0][0];
 		const substitutions = Array.prototype.slice.call(arguments, 1);
 		for(let i = 0; i < substitutions.length; i++) {
-			string += String(substitutions[i]).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/`/g, "&#96;").replace(/&/g, "&amp;").replace(/\//g, "&#47;") + arguments[0][i+1];
+			string += String(substitutions[i]).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/`/g, "&#96;").replace(/&/g, "&amp;") + arguments[0][i+1];
 		}
 		return string;
 	},
 	serve: o => {
 		const cube = {};
-		if(!(o instanceof Object)) {
-			o = {};
-		}
-		const options = cube.options = {...o};
+		const options = cube.options = {...o instanceof Object ? o : {}};
 		if(!(options.eval instanceof Function)) {
 			options.eval = eval;
 		}
@@ -37,8 +32,16 @@ const ServeCube = {
 		}
 		if(typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
+		} else if(!options.basePath.endsWith("/")) {
+			options.basePath = `${options.basePath}/`;
 		}
 		options.basePath = options.basePath.replace(/\\/g, "/");
+		if(typeof options.publicDir !== "string") {
+			options.publicDir = "www";
+		}
+		if(typeof options.errorDir !== "string") {
+			options.errorDir = "error";
+		}
 		if(typeof options.serverPath !== "string") {
 			options.serverPath = "server.js";
 		}
@@ -72,18 +75,6 @@ const ServeCube = {
 		}
 		const app = cube.app = express();
 		app.set("trust proxy", true);
-		app.use(cookieParser());
-		app.use(bodyParser.raw({
-			limit: "100mb",
-			type: "*/*"
-		}));
-		if(options.middleware instanceof Array) {
-			for(const v of options.middleware) {
-				if(v instanceof Function) {
-					app.use(v);
-				}
-			}
-		}
 		const rawPathCache = cube.rawPathCache = {};
 		const readCache = cube.readCache = {};
 		const loadCache = cube.loadCache = {};
@@ -108,15 +99,16 @@ const ServeCube = {
 				delete loadCache[cacheIndex];
 			}
 		};
-		const getRawPath = cube.getRawPath = (path, publicDirectory) => {
-			if(!publicDirectory && rawPathCache[path]) {
+		const getRawPath = cube.getRawPath = path => {
+			if(rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
-				let output = path;
-				if(!output.startsWith("/")) {
-					output = `/${output}`;
+				let output = path.replace(/\/\.{1,2}\//g, "/").replace(/[\\\/]+/g, "/");
+				if(output.startsWith("/")) {
+					output = output.slice(1);
 				}
-				output = `${options.basePath}${publicDirectory || "www"}${output.replace(/[\\\/]+/g, "/").replace(/\/\.{1,2}\//g, "")}`;
+				output = options.basePath + output;
+				
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
 					let addend = "";
 					let isDir = false;
@@ -137,11 +129,11 @@ const ServeCube = {
 				while(keys.length >= options.rawPathCacheLimit) {
 					delete rawPathCache[keys[0]];
 				}
-				return (publicDirectory && output) || (rawPathCache[path] = output);
+				return rawPathCache[path] = output.slice(options.basePath.length);
 			}
 		};
-		const load = cube.load = (path, context, publicDirectory) => {
-			const rawPath = getRawPath(path, publicDirectory);
+		const load = cube.load = (path, context) => {
+			const rawPath = getRawPath(path);
 			if(options.uncacheModified) {
 				const {mtimeMs} = fs.statSync(rawPath);
 				if(datesModified[rawPath] !== undefined && mtimeMs > datesModified[rawPath]) {
@@ -204,12 +196,12 @@ const ServeCube = {
 				}
 			});
 		};
-		const renderLoad = cube.renderLoad = async (path, req, res, publicDirectory) => {
+		const renderLoad = cube.renderLoad = async (path, req, res) => {
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
 				req,
 				res
-			}, publicDirectory);
+			});
 			if(result.redirect) {
 				if(result.status) {
 					res.redirect(result.status, result.redirect);
@@ -231,10 +223,10 @@ const ServeCube = {
 			}
 		};
 		const renderError = cube.renderError = (status, req, res) => {
-			const path = `${options.basePath}error/${status}`;
+			const path = `${options.basePath}${options.errorDir}/${status}`;
 			let newPath;
 			if((fs.existsSync(newPath = `${path}.njs`) && fs.statSync(newPath).isFile()) || (fs.existsSync(newPath = `${path}.html`) && fs.statSync(newPath).isFile()) || (fs.existsSync(newPath = `${path}.htm`) && !fs.statSync(newPath).isDirectory())) {
-				renderLoad(`/${status}`, req, res, "error");
+				renderLoad(`${options.errorDir}/${status}`, req, res);
 			} else {
 				res.status(status).send(String(status));
 			}
@@ -245,12 +237,6 @@ const ServeCube = {
 			res.set("X-Frame-Options", "SAMEORIGIN");
 			req.subdomain = req.subdomains.join(".");
 			const host = req.get("Host") || (req.subdomain ? `${req.subdomain}.` : "") + options.domain;
-			if(host.startsWith("localhost:")) {
-				Object.defineProperty(req, "protocol", {
-					value: "https",
-					enumerable: true
-				});
-			}
 			if(options.httpsRedirect && req.protocol === "http") {
 				res.redirect(`https://${host + req.url}`);
 			} else {
@@ -258,7 +244,9 @@ const ServeCube = {
 					res.redirect(`${req.protocol}://${host.slice(4) + req.url}`);
 				} else {
 					try {
-						req.decodedPath = decodeURIComponent(req.url);
+						if(!(req.decodedPath = decodeURIComponent(req.url)).startsWith("/")) {
+							req.decodedPath = `/${req.decodedPath}`;
+						}
 						req.next();
 					} catch(err) {
 						renderError(400, req, res);
@@ -266,6 +254,13 @@ const ServeCube = {
 				}
 			}
 		});
+		if(options.middleware instanceof Array) {
+			for(const v of options.middleware) {
+				if(v instanceof Function) {
+					app.use(v);
+				}
+			}
+		}
 		app.all("*", async (req, res) => {
 			if(!options.subdomain.includes(req.subdomain)) {
 				return;
@@ -278,9 +273,9 @@ const ServeCube = {
 			}
 			const queryIndex = req.decodedPath.indexOf("?");
 			const noQueryIndex = queryIndex === -1;
-			const path = getRawPath(noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex));
+			const path = getRawPath(options.publicDir + (noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex)));
 			const type = path.lastIndexOf("/") > path.lastIndexOf(".") ? "text/plain" : mime.getType(path);
-			let publicPath = path.slice(options.basePath.length+3);
+			let publicPath = path.slice(options.publicDir.length);
 			if(publicPath.endsWith(".njs") || publicPath.endsWith(".htm")) {
 				publicPath = publicPath.slice(0, -4);
 			} else if(publicPath.endsWith(".html")) {
@@ -361,7 +356,7 @@ const ServeCube = {
 									contents = contents.join("");
 								} else if(i.endsWith(".html") || i.endsWith(".htm")) {
 									contents = contents.replace(/\n/g, "").replace(/\s+/g, " ");
-								} else if(i.startsWith("www/")) {
+								} else if(i.startsWith(`${options.publicDir}/`)) {
 									const type = mime.getType(i);
 									if(type === "application/javascript") {
 										const filename = i.slice(i.lastIndexOf("/")+1);
@@ -419,7 +414,7 @@ const ServeCube = {
 			} else if(fs.existsSync(path)) {
 				res.set("Content-Type", type);
 				if(path.endsWith(".njs")) {
-					renderLoad(publicPath, req, res);
+					renderLoad(options.publicDir + publicPath, req, res);
 				} else {
 					if(type === "application/javascript" || type === "text/css") {
 						res.set("SourceMap", `${publicPath.slice(publicPath.lastIndexOf("/")+1)}.map`);
