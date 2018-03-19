@@ -61,7 +61,10 @@ const ServeCube = {
 			}
 		}
 		if(typeof options.githubSecret !== "string") {
-			options.githubSecret = "";
+			options.githubSecret = false;
+		}
+		if(typeof options.githubToken !== "string") {
+			options.githubToken = false;
 		}
 		options.uncacheModified = !!options.uncacheModified;
 		if(typeof options.rawPathCacheLimit !== "number") {
@@ -331,11 +334,15 @@ const ServeCube = {
 									}
 								}
 							} else if(files[i] === 2 || files[i] === 3) {
+								const headers = {
+									"User-Agent": "ServeCube"
+								};
+								if(options.githubToken) {
+									headers.Authorization = "token ${options.githubToken}";
+								}
 								const file = JSON.parse(await request.get({
 									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
-									headers: {
-										"User-Agent": "ServeCube"
-									}
+									headers: headers
 								}));
 								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
