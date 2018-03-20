@@ -170,7 +170,7 @@ const ServeCube = {
 			} else {
 				context = {};
 			}
-			const properties = ["exit", "req", "res", Object.keys(context)];
+			const properties = ["exit", "req", "res", ...Object.keys(context)];
 			context.value = "";
 			let cacheIndex = rawPath;
 			if(loadCache[cacheIndex] === 2) {
