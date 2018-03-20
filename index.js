@@ -12,6 +12,15 @@ const mime = require("mime");
 mime.define({
 	"text/html": ["njs"]
 });
+class ServeCubeError extends Error {
+	constructor(message) {
+		const err = super(message);
+		err.name = "ServeCubeError";
+		return err;
+	}
+}
+const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
+const subdomainValueTest = /^.*[.\/]$/;
 const ServeCube = {
 	html: function() {
 		let string = arguments[0][0];
@@ -28,7 +37,7 @@ const ServeCube = {
 			options.eval = eval;
 		}
 		if(typeof options.domain !== "string") {
-			throw new TypeError("ServeCube: The \"domain\" option must be defined.");
+			throw new ServeCubeError("The `domain` option must be defined.");
 		}
 		if(typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
@@ -36,11 +45,10 @@ const ServeCube = {
 			options.basePath = `${options.basePath}/`;
 		}
 		options.basePath = options.basePath.replace(/\\/g, "/");
-		if(typeof options.publicDir !== "string") {
-			options.publicDir = "www";
-		}
 		if(typeof options.errorDir !== "string") {
 			options.errorDir = "error";
+		} else if(options.errorDir.endsWith("/")) {
+			options.errorDir = options.errorDir.slice(0, -1);
 		}
 		if(typeof options.serverPath !== "string") {
 			options.serverPath = "server.js";
@@ -56,12 +64,24 @@ const ServeCube = {
 			delete options.tls;
 		}
 		options.httpsRedirect = options.httpsRedirect === false ? false : !!(options.httpsRedirect || options.tls);
-		if(!(options.subdomain instanceof Array)) {
-			if(typeof options.subdomain === "string") {
-				options.subdomain = [options.subdomain];
-			} else {
-				options.subdomain = [""];
+		if(options.subdomains instanceof Object) {
+			for(const i of Object.keys(options.subdomains)) {
+				if(subdomainTest.test(i)) {
+					if(!subdomainValueTest.test(options.subdomains[i])) {
+						throw new ServeCubeError(`"${options.subdomains[i]}" is not a valid subdomain value.`);
+					}
+				} else {
+					throw new ServeCubeError(`"${options.subdomains[i]}" is not a valid subdomain.`);
+				}
 			}
+		} else {
+			options.subdomains = {};
+		}
+		if(options.subdomains["*"] === undefined) {
+			if(options.subdomains[""] === undefined) {
+				options.subdomains[""] = "www/";
+			}
+			options.subdomains["*"] = ".";
 		}
 		if(typeof options.githubSecret !== "string") {
 			options.githubSecret = false;
@@ -236,21 +256,26 @@ const ServeCube = {
 			res.set("Access-Control-Expose-Headers", "X-Magic");
 			res.set("X-Frame-Options", "SAMEORIGIN");
 			req.subdomain = req.subdomains.join(".");
-			const host = req.get("Host") || (req.subdomain ? `${req.subdomain}.` : "") + options.domain;
-			if(options.httpsRedirect && req.protocol === "http") {
-				res.redirect(`https://${host + req.url}`);
+			let redirect = false;
+			const subdomain = options.subdomains[req.subdomain] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
+			if(subdomain.endsWith(".")) {
+				redirect = subdomain === "." ? "" : subdomain;
 			} else {
-				if(req.subdomain === "www") {
-					res.redirect(`${req.protocol}://${host.slice(4) + req.url}`);
-				} else {
-					try {
-						if(!(req.decodedPath = decodeURIComponent(req.url)).startsWith("/")) {
-							req.decodedPath = `/${req.decodedPath}`;
-						}
-						req.next();
-					} catch(err) {
-						renderError(400, req, res);
-					}
+				req.dir = subdomain.slice(0, -1);
+			}
+			if(options.httpsRedirect && req.protocol === "http") {
+				redirect = `https://${redirect || ""}`;
+			} else if(redirect !== false) {
+				redirect = `${req.protocol}://${redirect}`;
+			}
+			if(redirect !== false) {
+				res.redirect(redirect + options.domain + req.url);
+			} else {
+				try {
+					req.decodedPath = decodeURIComponent(req.url);
+					req.next();
+				} catch(err) {
+					renderError(400, req, res);
 				}
 			}
 		});
@@ -262,9 +287,6 @@ const ServeCube = {
 			}
 		}
 		app.all("*", async (req, res) => {
-			if(!options.subdomain.includes(req.subdomain)) {
-				return;
-			}
 			const getMethod = req.method === "GET";
 			if(getMethod) {
 				res.set("Cache-Control", "max-age=86400");
@@ -273,9 +295,9 @@ const ServeCube = {
 			}
 			const queryIndex = req.decodedPath.indexOf("?");
 			const noQueryIndex = queryIndex === -1;
-			const path = getRawPath(options.publicDir + (noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex)));
+			const path = getRawPath(req.dir + (noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex)));
 			const type = path.lastIndexOf("/") > path.lastIndexOf(".") ? "text/plain" : mime.getType(path);
-			let publicPath = path.slice(options.publicDir.length);
+			let publicPath = path.slice(req.dir.length);
 			if(publicPath.endsWith(".njs") || publicPath.endsWith(".htm")) {
 				publicPath = publicPath.slice(0, -4);
 			} else if(publicPath.endsWith(".html")) {
@@ -333,7 +355,7 @@ const ServeCube = {
 									"User-Agent": "ServeCube"
 								};
 								if(options.githubToken) {
-									headers.Authorization = "token ${options.githubToken}";
+									headers.Authorization = `token ${options.githubToken}`;
 								}
 								const file = JSON.parse(await request.get({
 									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
@@ -356,7 +378,7 @@ const ServeCube = {
 									contents = contents.join("");
 								} else if(i.endsWith(".html") || i.endsWith(".htm")) {
 									contents = contents.replace(/\n/g, "").replace(/\s+/g, " ");
-								} else if(i.startsWith(`${options.publicDir}/`)) {
+								} else if(i.startsWith(`${req.dir}/`)) {
 									const type = mime.getType(i);
 									if(type === "application/javascript") {
 										const filename = i.slice(i.lastIndexOf("/")+1);
@@ -414,7 +436,7 @@ const ServeCube = {
 			} else if(fs.existsSync(path)) {
 				res.set("Content-Type", type);
 				if(path.endsWith(".njs")) {
-					renderLoad(options.publicDir + publicPath, req, res);
+					renderLoad(req.dir + publicPath, req, res);
 				} else {
 					if(type === "application/javascript" || type === "text/css") {
 						res.set("SourceMap", `${publicPath.slice(publicPath.lastIndexOf("/")+1)}.map`);
