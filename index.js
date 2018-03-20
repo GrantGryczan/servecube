@@ -1,4 +1,4 @@
-const fs = require("fs");
+const fs = require("fs-extra");
 const http = require("http");
 const https = require("https");
 const request = require("request-promise-native");
@@ -30,7 +30,7 @@ const ServeCube = {
 		}
 		return string;
 	},
-	serve: o => {
+	serve: async o => {
 		const cube = {};
 		const options = cube.options = {...o instanceof Object ? o : {}};
 		if(!(options.eval instanceof Function)) {
@@ -95,6 +95,8 @@ const ServeCube = {
 		}
 		const app = cube.app = express();
 		app.set("trust proxy", true);
+		const tree = {};
+		
 		const rawPathCache = cube.rawPathCache = {};
 		const readCache = cube.readCache = {};
 		const loadCache = cube.loadCache = {};
@@ -119,7 +121,7 @@ const ServeCube = {
 				delete loadCache[cacheIndex];
 			}
 		};
-		const getRawPath = cube.getRawPath = path => {
+		const getRawPath = cube.getRawPath = async path => {
 			if(rawPathCache[path]) {
 				return rawPathCache[path];
 			} else {
@@ -128,18 +130,17 @@ const ServeCube = {
 					output = output.slice(1);
 				}
 				output = options.basePath + output;
-				
 				if(output.lastIndexOf("/") > output.lastIndexOf(".")) {
 					let addend = "";
 					let isDir = false;
-					if(fs.existsSync(output) && (isDir = fs.statSync(output).isDirectory())) {
+					if(await fs.exists(output) && (isDir = (await fs.stat(output)).isDirectory())) {
 						if(!output.endsWith("/")) {
 							output += "/";
 						}
 						addend = "index";
 					}
 					let newOutput;
-					if((fs.existsSync(newOutput = `${output}${addend}.njs`) && fs.statSync(newOutput).isFile()) || (fs.existsSync(newOutput = `${output}${addend}.html`) && fs.statSync(newOutput).isFile()) || (fs.existsSync(newOutput = `${output}${addend}.htm`) && !fs.statSync(newOutput).isDirectory())) {
+					if((await fs.exists(newOutput = `${output}${addend}.njs`) && (await fs.stat(newOutput)).isFile()) || (await fs.exists(newOutput = `${output}${addend}.html`) && (await fs.stat(newOutput)).isFile()) || (await fs.exists(newOutput = `${output}${addend}.htm`) && !(await fs.stat(newOutput)).isDirectory())) {
 						output = newOutput;
 					} else if(isDir) {
 						output += `${addend}.njs`;
@@ -152,10 +153,10 @@ const ServeCube = {
 				return rawPathCache[path] = output.slice(options.basePath.length);
 			}
 		};
-		const load = cube.load = (path, context) => {
-			const rawPath = getRawPath(path);
+		const load = cube.load = async (path, context) => {
+			const rawPath = await getRawPath(path);
 			if(options.uncacheModified) {
-				const {mtimeMs} = fs.statSync(rawPath);
+				const {mtimeMs} = await fs.stat(rawPath);
 				if(datesModified[rawPath] !== undefined && mtimeMs > datesModified[rawPath]) {
 					uncache(rawPath);
 				}
@@ -171,21 +172,21 @@ const ServeCube = {
 			}
 			const properties = ["exit", "req", "res", Object.keys(context)];
 			context.value = "";
-			return new Promise((resolve, reject) => {
-				let cacheIndex = rawPath;
-				if(loadCache[cacheIndex] === 2) {
-					cacheIndex = `${context.req.method} ${cacheIndex}?`;
-					const queryIndex = context.req.url.indexOf("?");
-					if(queryIndex !== -1) {
-						cacheIndex += context.req.url.slice(queryIndex+1);
-					}
+			let cacheIndex = rawPath;
+			if(loadCache[cacheIndex] === 2) {
+				cacheIndex = `${context.req.method} ${cacheIndex}?`;
+				const queryIndex = context.req.url.indexOf("?");
+				if(queryIndex !== -1) {
+					cacheIndex += context.req.url.slice(queryIndex+1);
 				}
-				if(loadCache[cacheIndex]) {
-					resolve({
-						...context,
-						...loadCache[cacheIndex]
-					});
-				} else {
+			}
+			if(loadCache[cacheIndex]) {
+				return {
+					...context,
+					...loadCache[cacheIndex]
+				};
+			} else {
+				return await new Promise((resolve, reject) => {
 					context.exit = () => {
 						if(context.cache) {
 							if(context.cache === 2) {
@@ -205,16 +206,14 @@ const ServeCube = {
 						}
 						resolve(context);
 					};
-					try {
+					fs.readFile(rawPath).then(data => {
 						if(!readCache[rawPath]) {
-							readCache[rawPath] = options.eval(`(async function() {\n${fs.readFileSync(rawPath)}\n})`);
+							readCache[rawPath] = options.eval(`(async function() {\n${data}\n})`);
 						}
 						readCache[rawPath].call(context);
-					} catch(err) {
-						reject(err);
-					}
-				}
-			});
+					}).catch(reject);
+				});
+			}
 		};
 		const renderLoad = cube.renderLoad = async (path, req, res) => {
 			res.set("Content-Type", "text/html");
@@ -242,10 +241,10 @@ const ServeCube = {
 				res.send(result.value);
 			}
 		};
-		const renderError = cube.renderError = (status, req, res) => {
+		const renderError = cube.renderError = async (status, req, res) => {
 			const path = `${options.basePath}${options.errorDir}/${status}`;
 			let newPath;
-			if((fs.existsSync(newPath = `${path}.njs`) && fs.statSync(newPath).isFile()) || (fs.existsSync(newPath = `${path}.html`) && fs.statSync(newPath).isFile()) || (fs.existsSync(newPath = `${path}.htm`) && !fs.statSync(newPath).isDirectory())) {
+			if((await fs.exists(newPath = `${path}.njs`) && (await fs.stat(newPath)).isFile()) || (await fs.exists(newPath = `${path}.html`) && (await fs.stat(newPath)).isFile()) || (await fs.exists(newPath = `${path}.htm`) && !(await fs.stat(newPath)).isDirectory())) {
 				renderLoad(`${options.errorDir}/${status}`, req, res);
 			} else {
 				res.status(status).send(String(status));
@@ -295,7 +294,7 @@ const ServeCube = {
 			}
 			const queryIndex = req.decodedPath.indexOf("?");
 			const noQueryIndex = queryIndex === -1;
-			const path = getRawPath(req.dir + (noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex)));
+			const path = await getRawPath(req.dir + (noQueryIndex ? req.decodedPath : req.decodedPath.slice(0, queryIndex)));
 			const type = path.lastIndexOf("/") > path.lastIndexOf(".") ? "text/plain" : mime.getType(path);
 			let publicPath = path.slice(req.dir.length);
 			if(publicPath.endsWith(".njs") || publicPath.endsWith(".htm")) {
@@ -332,19 +331,19 @@ const ServeCube = {
 						}
 						for(const i of Object.keys(files)) {
 							if(files[i] === 1) {
-								if(fs.existsSync(i)) {
-									fs.unlinkSync(i);
+								if(await fs.exists(i)) {
+									await fs.unlink(i);
 									const type = mime.getType(i);
 									if(type === "application/javascript" || type === "text/css") {
-										fs.unlinkSync(`${i}.map`);
+										await fs.unlink(`${i}.map`);
 									}
 								}
 								let index = i.length;
 								while((index = i.lastIndexOf("/", index)-1) !== -2) {
 									const path = i.slice(0, index+1);
-									if(fs.existsSync(path)) {
+									if(await fs.exists(path)) {
 										try {
-											fs.rmdirSync(path);
+											await fs.rmdir(path);
 										} catch(err) {
 											break;
 										}
@@ -365,8 +364,8 @@ const ServeCube = {
 								let index = 0;
 								while(index = i.indexOf("/", index)+1) {
 									nextPath = i.slice(0, index-1);
-									if(!fs.existsSync(nextPath)) {
-										fs.mkdirSync(nextPath);
+									if(!await fs.exists(nextPath)) {
+										await fs.mkdir(nextPath);
 									}
 								}
 								// TODO: Don't minify content in `textarea` and `pre` tags.
@@ -404,7 +403,7 @@ const ServeCube = {
 											}
 										});
 										contents = result.code;
-										fs.writeFileSync(`${i}.map`, result.map);
+										await fs.writeFile(`${i}.map`, result.map);
 									} else if(type === "text/css") {
 										const output = new CleanCSS({
 											inline: false,
@@ -413,10 +412,10 @@ const ServeCube = {
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
 										sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
-										fs.writeFileSync(`${i}.map`, JSON.stringify(sourceMap));
+										await fs.writeFile(`${i}.map`, JSON.stringify(sourceMap));
 									}
 								}
-								fs.writeFileSync(i, contents);
+								await fs.writeFile(i, contents);
 							}
 							uncache(`${options.basePath}${i}`);
 						}
@@ -433,7 +432,7 @@ const ServeCube = {
 				} else {
 					renderError(503, req, res);
 				}
-			} else if(fs.existsSync(path)) {
+			} else if(await fs.exists(path)) {
 				res.set("Content-Type", type);
 				if(path.endsWith(".njs")) {
 					renderLoad(req.dir + publicPath, req, res);
