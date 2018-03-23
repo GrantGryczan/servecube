@@ -18,8 +18,8 @@ mime.define({
 	"text/html": ["njs"]
 });
 class ServeCubeError extends Error {
-	constructor(message) {
-		const err = super(message);
+	constructor() {
+		const err = super(...arguments);
 		err.name = "ServeCubeError";
 		return err;
 	}
@@ -131,7 +131,14 @@ const ServeCube = {
 					parent.children[v].children = {};
 					await plant(parent.children[v], child);
 				} else if(v.endsWith(".njs")) {
-					parent.children[v].func = options.eval(`(async function() {\n${await fs.readFile(childPath)}\n})`);
+					try {
+						parent.children[v].func = options.eval(`(async function() {\n${await fs.readFile(childPath)}\n})`);
+					} catch(err) {
+						throw new ServeCubeError(`An occured while evaluating \`${childPath}\`.\n${err.name}: ${err.message}`);
+					}
+					if(!(parent.children[v].func instanceof Function)) {
+						throw new ServeCubeError("The `eval` option must return the evaluated input, which should always be a function.");
+					}
 				}
 			}
 		};
@@ -159,9 +166,14 @@ const ServeCube = {
 				}
 			}
 			if(child) {
-				let next;
-				output.func = parent.children[child].func;
-				return child + (parent.children[child].children && (next = climb(output, parent.children[child], path, i+1)) ? `/${next}` : (parent.children[child].index ? `/${parent.children[child].index}` : ""));
+				if(i === path.length-1) {
+					output.func = parent.children[child].func;
+					output.hasIndex = !!parent.children[child].index;
+					return child;
+				} else if(parent.children[child].children) {
+					const next = climb(output, parent.children[child], path, i+1);
+					return child + (next ? `/${next}` : "");
+				}
 			}
 		};
 		for(const v of [`${options.errorDir}/`, ...Object.values(options.subdomains)]) {
@@ -176,10 +188,6 @@ const ServeCube = {
 		const readCache = cube.readCache = {};
 		const loadCache = cube.loadCache = {};
 		const datesModified = cube.datesModified = {};
-		const uncache = cube.uncache = rawPath => {
-			delete readCache[rawPath];
-			delete loadCache[rawPath];
-		};
 		const getRawPath = cube.getRawPath = async path => {
 			const dir = (path = path.split("/"))[0];
 			path = path.slice(1);
@@ -189,6 +197,10 @@ const ServeCube = {
 				output.rawPath = undefined;
 			}
 			return output;
+		};
+		const uncache = cube.uncache = rawPath => {
+			delete readCache[rawPath];
+			delete loadCache[rawPath];
 		};
 		const load = cube.load = async (path, context) => {
 			const {rawPath, params, func} = await getRawPath(path);
@@ -283,9 +295,8 @@ const ServeCube = {
 			res.set("X-Magic", "real");
 			res.set("Access-Control-Expose-Headers", "X-Magic");
 			res.set("X-Frame-Options", "SAMEORIGIN");
-			req.subdomain = req.subdomains.join(".");
 			let redirect = false;
-			const subdomain = options.subdomains[req.subdomain] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
+			const subdomain = options.subdomains[req.subdomain = req.subdomains.join(".")] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
 			if(subdomain.endsWith(".")) {
 				redirect = subdomain === "." ? "" : subdomain;
 			} else {
@@ -302,7 +313,7 @@ const ServeCube = {
 			}
 			if(req.url !== url) {
 				if(redirect === false) {
-					redirect = `${req.protocol}://${(subdomain === "." ? "" : subdomain) + options.domain + url}`;
+					redirect = url;
 				} else {
 					redirect += options.domain + url;
 				}
@@ -319,8 +330,13 @@ const ServeCube = {
 					return;
 				}
 				const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
+				const {rawPath, hasIndex} = await getRawPath(req.dir + (req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex)));
+				if(!rawPath && hasIndex) {
+					res.redirect(`${req.url}/`);
+					return;
+				}
+				req.rawPath = rawPath;
 				req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
-				Object.assign(req, await getRawPath(req.dir + (req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex))));
 				req.next();
 			}
 		});
@@ -381,9 +397,8 @@ const ServeCube = {
 								if(options.githubToken) {
 									headers.Authorization = `token ${options.githubToken}`;
 								}
-								const file = JSON.parse(await request.get({
-									url: `https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`,
-									headers: headers
+								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, {
+									headers
 								}));
 								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
