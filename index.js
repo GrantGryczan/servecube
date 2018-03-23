@@ -212,7 +212,7 @@ const ServeCube = {
 				});
 				context.value = "";
 				let cacheIndex;
-				return loadCache[context.rawPath] && loadCache[context.rawPath][cacheIndex = `:${loadCache[context.rawPath].discriminate instanceof Function ? loadCache[cacheIndex].discriminate(context) : ""}`] ? {
+				return loadCache[context.rawPath] && loadCache[context.rawPath][cacheIndex = `:${loadCache[context.rawPath].discriminate instanceof Function ? loadCache[context.rawPath].discriminate(context) : ""}`] ? {
 					...context,
 					...loadCache[context.rawPath][cacheIndex]
 				} : await new Promise((resolve, reject) => {
