@@ -47,9 +47,9 @@ const ServeCube = {
 		}
 		return string;
 	},
-	serve: async o => {
+	serve: async options => {
 		const cube = {};
-		const options = cube.options = o instanceof Object ? o : {};
+		options = options instanceof Object ? options : {};
 		if(!(options.eval instanceof Function)) {
 			options.eval = eval;
 		}
@@ -103,109 +103,196 @@ const ServeCube = {
 		if(typeof options.githubSecret !== "string") {
 			options.githubSecret = false;
 		}
-		if(typeof options.githubToken !== "string") {
-			options.githubToken = false;
+		const requestOptions = {
+			headers: {
+				"User-Agent": "ServeCube"
+			}
+		};
+		if(typeof options.githubToken === "string") {
+			requestOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
 		const app = cube.app = express();
 		app.set("trust proxy", true);
-		const tree = cube.tree = {};
-		const treeDirs = [];
-		const plant = async (parent, path) => {
-			const children = await fs.readdir(options.basePath + path);
-			for(const v of children) {
-				parent.children[v] = {};
-				const child = `${path}/${v}`;
-				const childPath = options.basePath + child;
-				const isDir = (await fs.stat(childPath)).isDirectory();
-				if(v.startsWith("index.") && !isDir && pageTest.test(v)) {
-					parent.index = v;
-				} else {
-					const params = [];
-					const re = pathToRegexp(v.replace(pageTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
-					if(params.length) {
-						parent.children[v].params = params.map(w => w.name);
-						parent.children[v].test = re;
-					}
-				}
-				if(isDir) {
-					parent.children[v].children = {};
-					await plant(parent.children[v], child);
-				} else if(v.endsWith(".njs")) {
-					try {
-						parent.children[v].func = options.eval(`(async function() {\n${await fs.readFile(childPath)}\n})`);
-					} catch(err) {
-						throw new ServeCubeError(`An occured while evaluating \`${childPath}\`.\n${err.name}: ${err.message}`);
-					}
-					if(!(parent.children[v].func instanceof Function)) {
-						throw new ServeCubeError("The `eval` option must return the evaluated input, which should always be a function.");
-					}
-				}
+		const getPaths = (path, paramName) => {
+			if(typeof path !== "string") {
+				throw new ServeCubeError(`The \`${paramName || "path"}\` parameter must be a string.`);
 			}
-		};
-		const climb = (output, parent, path, i) => {
-			let child;
-			if(path[i] === "") {
-				child = parent.index;
-			} if(parent.children[path[i]] && !parent.children[path[i]].test) {
-				child = path[i];
-			} else {
-				for(const j of Object.keys(parent.children)) {
-					if(parent.children[j].test) {
-						let matches = path[i].match(parent.children[j].test);
-						if(matches) {
-							for(let k = 0; k < parent.children[j].params.length; k++) {
-								output.params[parent.children[j].params[k]] = matches[k+1];
-							}
-							child = j;
-							break;
-						}
-					} else if(pageTest.test(j) && path[i] === j.replace(pageTest, "") && !parent.children[j].test) {
-						child = j;
-						break;
-					}
-				}
-			}
-			if(child) {
-				if(i === path.length-1) {
-					output.func = parent.children[child].func;
-					output.hasIndex = !!parent.children[child].index;
-					return child;
-				} else if(parent.children[child].children) {
-					const next = climb(output, parent.children[child], path, i+1);
-					return child + (next ? `/${next}` : "");
-				}
-			}
-		};
-		for(const v of [`${options.errorDir}/`, ...Object.values(options.subdomains)]) {
-			if(v.endsWith("/") && !treeDirs.includes(v)) {
-				const dir = v.slice(0, -1);
-				treeDirs.push(dir);
-				await plant(tree[dir] = {
-					children: {}
-				}, dir);
-			}
-		}
-		const readCache = cube.readCache = {};
-		const loadCache = cube.loadCache = {};
-		const datesModified = cube.datesModified = {};
-		const getRawPath = cube.getRawPath = async path => {
-			const dir = (path = path.split("/"))[0];
-			path = path.slice(1);
 			const output = {};
-			output.rawPath = climb(output, tree[dir], path, 0);
-			if(output.rawPath && !(await fs.stat(options.basePath + (output.rawPath = `${dir}/${output.rawPath}`))).isFile()) {
-				output.rawPath = undefined;
+			if(!(output.dir = (output.paths = path.split("/")).shift())) {
+				throw new ServeCubeError("The specified path contains no base directory.");
 			}
 			return output;
 		};
-		const uncache = cube.uncache = rawPath => {
-			delete readCache[rawPath];
-			delete loadCache[rawPath];
+		const tree = cube.tree = {};
+		const plantChild = async (parent, child, isDir, fullPath) => {
+			parent.children[child] = {};
+			if(child.startsWith("index.") && !isDir && pageTest.test(child)) {
+				parent.index = child;
+			} else {
+				const params = [];
+				const re = pathToRegexp(child.replace(pageTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
+				if(params.length) {
+					parent.children[child].params = params.map(w => w.name);
+					parent.children[child].test = re;
+				}
+			}
+			if(isDir) {
+				parent.children[child].children = {};
+			} else if(child.endsWith(".njs")) {
+				try {
+					parent.children[child].func = options.eval(`(async function() {\n${await fs.readFile(fullPath)}\n})`);
+				} catch(err) {
+					throw new ServeCubeError(`An occured while evaluating \`${fullPath}\`.\n${err.name}: ${err.message}`);
+				}
+				if(!(parent.children[child].func instanceof Function)) {
+					throw new ServeCubeError("The `eval` option must return the evaluated input, which should always be a function.");
+				}
+			}
+		}
+		const plant = async (parent, path) => {
+			const children = await fs.readdir(options.basePath + path);
+			for(const v of children) {
+				const childPath = `${path}/${v}`;
+				const fullPath = options.basePath + childPath;
+				const isDir = (await fs.stat(fullPath)).isDirectory();
+				await plantChild(parent, v, isDir, fullPath);
+				if(isDir) {
+					await plant(parent.children[v], childPath);
+				}
+			}
 		};
+		const limb = cube.limb = rawPath => {
+			const {dir, paths} = getPaths(rawPath, "rawPath");
+			let parent = tree[dir];
+			const parents = [[dir, parent]];
+			while(paths.length) {
+				const child = paths.shift();
+				if(parent.children && parent.children[child]) {
+					parents.unshift([child, parent = parent.children[child]]);
+				} else {
+					throw new ServeCubeError(`The file \`${parents.map(v => v[0]).join("/")}/${child}\` is not planted.`);
+				}
+			}
+			while(parents.length) {
+				const child = parents.shift()[0];
+				if(parents[0][1].index === child) {
+					delete parents[0][1].index;
+				}
+				delete parents[0][1].children[child];
+				if(Object.keys(parents[0][1].children).length) {
+					break;
+				}
+			}
+		};
+		const replant = cube.replant = async path => {
+			const {dir, paths} = getPaths(path);
+			let parent = tree[dir];
+			while(paths.length) {
+				if(parent) {
+					if(parent.children) {
+						if(parent.children[paths[0]]) {
+							parent = parent.children[paths[0]];
+							paths.shift();
+						} else {
+							break;
+						}
+					} else {
+						throw new ServeCubeError(`The file \`${path.split("/").slice(0, -paths.length).join("/")}\` has no children as it is not a directory.`);
+					}
+				} else {
+					break;
+				}
+			}
+			if(!paths.length) {
+				throw new ServeCubeError("A file must be limbed before it can be replanted.");
+			}
+			const fullPath = options.basePath + path;
+			if(!await fs.exists(fullPath)) {
+				throw new ServeCubeError(`The file \`${fullPath}\` was not found.`);
+			} else if((await fs.stat(fullPath)).isDirectory()) {
+				throw new ServeCubeError(`The file \`${fullPath}\` is a directory.`);
+			}
+			while(paths.length-1) {
+				const child = paths.shift();
+				await plantChild(parent, child, true);
+				parent = parent.children[child];
+			}
+			await plantChild(parent, paths[0], false, fullPath);
+		};
+		const getRawPath = cube.getRawPath = async path => {
+			const {dir, paths} = getPaths(path);
+			const output = {
+				rawPath: dir
+			};
+			let parent = tree[dir];
+			while(paths.length) {
+				let child;
+				if(paths[0] === "") {
+					if(parent.index) {
+						child = parent.index;
+					} else {
+						output.rawPath = undefined;
+						break;
+					}
+				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
+					child = paths[0];
+				} else {
+					for(const i of Object.keys(parent.children)) {
+						if(parent.children[i].test) {
+							let matches = paths[0].match(parent.children[i].test);
+							if(matches) {
+								for(let j = 0; j < parent.children[i].params.length; j++) {
+									output.params[parent.children[i].params[j]] = matches[j+1];
+								}
+								child = i;
+								break;
+							}
+						} else if(pageTest.test(i) && paths[0] === i.replace(pageTest, "") && !parent.children[i].test) {
+							child = i;
+							break;
+						}
+					}
+				}
+				if(child) {
+					output.rawPath += `/${child}`;
+					if(paths.length === 1) {
+						output.func = parent.children[child].func;
+						output.hasIndex = !!parent.children[child].index;
+						break;
+					} else if(!parent.children[child].children) {
+						break;
+					}
+					parent = parent.children[child];
+					paths.shift();
+				} else {
+					output.rawPath = undefined;
+					break;
+				}
+			}
+			if(paths.length !== 1) {
+				output.rawPath = undefined;
+			}
+			if(output.rawPath) {
+				const fullPath = options.basePath + output.rawPath;
+				if(!await fs.exists(fullPath) || (await fs.stat(fullPath)).isDirectory()) {
+					output.rawPath = undefined;
+				}
+			}
+			return output;
+		};
+		for(const v of [`${options.errorDir}/`, ...Object.values(options.subdomains)].filter((v, i, a) => v.endsWith("/") && a.indexOf(v) === i).map(v => v.slice(0, -1))) {
+			await plant(tree[v] = {
+				children: {}
+			}, v);
+		}
+		const loadCache = cube.loadCache = {};
 		const load = cube.load = async (path, context) => {
+			if(context && !(context instanceof Object)) {
+				throw new ServeCubeError("The `context` parameter must be an object.");
+			}
 			const {rawPath, params, func} = await getRawPath(path);
 			if(!rawPath) {
-				throw new ServeCubeError(`File \`${path}\` was not found, under \`${rawPath}\`.`);
+				throw new ServeCubeError(`The file \`${path}\` is not planted.`);
 			}
 			if(func) {
 				if(context) {
@@ -256,7 +343,7 @@ const ServeCube = {
 				};
 			}
 		};
-		const renderLoad = cube.renderLoad = async (path, req, res) => {
+		const renderLoad = async (path, req, res) => {
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
 				req,
@@ -282,7 +369,7 @@ const ServeCube = {
 				res.send(result.value);
 			}
 		};
-		const renderError = cube.renderError = async (status, req, res) => {
+		const renderError = async (status, req, res) => {
 			const path = `${options.errorDir}/${status}`;
 			const {rawPath} = await getRawPath(path);
 			if(rawPath) {
@@ -371,6 +458,7 @@ const ServeCube = {
 						}
 						for(const i of Object.keys(files)) {
 							const fullPath = options.basePath + i;
+							limb(i);
 							if(files[i] === 1) {
 								if(await fs.exists(fullPath)) {
 									await fs.unlink(fullPath);
@@ -391,15 +479,7 @@ const ServeCube = {
 									}
 								}
 							} else if(files[i] === 2 || files[i] === 3) {
-								const headers = {
-									"User-Agent": "ServeCube"
-								};
-								if(options.githubToken) {
-									headers.Authorization = `token ${options.githubToken}`;
-								}
-								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, {
-									headers
-								}));
+								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, requestOptions));
 								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
 								while(index = i.indexOf("/", index)+1) {
@@ -456,8 +536,8 @@ const ServeCube = {
 									}
 								}
 								await fs.writeFile(fullPath, contents);
+								await replant(i);
 							}
-							uncache(i);
 						}
 						res.send();
 						if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
