@@ -550,7 +550,7 @@ const ServeCube = {
 							}
 						}
 						res.send();
-						if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)] === 0) {
+						if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)]) {
 							if(files["package.json"]) {
 								childProcess.spawnSync("npm", ["install"]);
 							}
