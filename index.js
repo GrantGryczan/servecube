@@ -164,6 +164,9 @@ const ServeCube = {
 		const limb = cube.limb = rawPath => {
 			const {dir, paths} = getPaths(rawPath, "rawPath");
 			let parent = tree[dir];
+			if(!parent) {
+				throw new ServeCubeError(`The specified base directory, \`${dir}\`, is not planted.`);
+			}
 			const parents = [[dir, parent]];
 			while(paths.length) {
 				const child = paths.shift();
@@ -187,6 +190,9 @@ const ServeCube = {
 		const replant = cube.replant = async path => {
 			const {dir, paths} = getPaths(path);
 			let parent = tree[dir];
+			if(!parent) {
+				throw new ServeCubeError(`The specified base directory, \`${dir}\`, is not planted.`);
+			}
 			while(paths.length) {
 				if(parent) {
 					if(parent.children) {
@@ -458,7 +464,9 @@ const ServeCube = {
 						}
 						for(const i of Object.keys(files)) {
 							const fullPath = options.basePath + i;
-							limb(i);
+							try {
+								limb(i);
+							} catch(err) {}
 							if(files[i] === 1) {
 								if(await fs.exists(fullPath)) {
 									await fs.unlink(fullPath);
@@ -536,7 +544,9 @@ const ServeCube = {
 									}
 								}
 								await fs.writeFile(fullPath, contents);
-								await replant(i);
+								try {
+									await replant(i);
+								} catch(err) {}
 							}
 						}
 						res.send();
