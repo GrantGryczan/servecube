@@ -496,15 +496,14 @@ const ServeCube = {
 										await fs.mkdir(nextPath);
 									}
 								}
-								// TODO: Don't minify content in `textarea` and `pre` tags.
 								if(i.endsWith(".njs")) {
-									contents = String(contents).split(htmlTest);
+									contents = String(contents).split(htmlTest); // TODO: Don't minify content in `textarea` and `pre` tags.
 									for(let j = 1; j < contents.length; j += 2) {
 										contents[j] = contents[j].replace(brs, "").replace(whitespace, " ");
 									}
 									contents = contents.join("");
 								} else if(i.endsWith(".html") || i.endsWith(".htm")) {
-									contents = contents.replace(brs, "").replace(whitespace, " ");
+									contents = String(contents).replace(brs, "").replace(whitespace, " ");
 								} else if(i.startsWith(`${req.dir}/`)) {
 									const type = mime.getType(i);
 									if(type === "application/javascript") {
