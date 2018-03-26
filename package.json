@@ -1,6 +1,6 @@
 {
 	"name": "servecube",
-	"version": "1.10.1",
+	"version": "1.10.2",
 	"description": "A Node web server",
 	"main": "index.js",
 	"repository": {
