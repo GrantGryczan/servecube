@@ -27,14 +27,17 @@ class ServeCubeError extends Error {
 const backslashes = /\\/g;
 const brs = /\n/g;
 const whitespace = /\s+/g;
-const pageTest = /\.(?:njs|html?)$/;
+const njsExtTest = /\.njs$/i;
+const htmlExtTest = /\.html?$/i;
+const pageExtTest = /\.(?:njs|html?)$/i;
+const indexTest = /^index\.(?:njs|html?)$/i;
 const templateTest = /\{(\w+)}/g;
 const htmlTest = /(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g;
 const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
 const subdomainValueTest = /^.*[.\/]$/;
 const ServeCube = {
 	htmlReplacements: [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]],
-	urlReplacements: [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageTest, ""], [/\/index$/, "/"]],
+	urlReplacements: [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]],
 	html: function() {
 		let string = arguments[0][0];
 		const substitutions = Array.prototype.slice.call(arguments, 1);
@@ -126,11 +129,11 @@ const ServeCube = {
 		const tree = cube.tree = {};
 		const plantChild = async (parent, child, isDir, fullPath) => {
 			parent.children[child] = {};
-			if(child.startsWith("index.") && !isDir && pageTest.test(child)) {
+			if(!isDir && indexTest.test(child)) {
 				parent.index = child;
 			} else {
 				const params = [];
-				const re = pathToRegexp(child.replace(pageTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
+				const re = pathToRegexp(child.replace(pageExtTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
 				if(params.length) {
 					parent.children[child].params = params.map(w => w.name);
 					parent.children[child].test = re;
@@ -138,7 +141,7 @@ const ServeCube = {
 			}
 			if(isDir) {
 				parent.children[child].children = {};
-			} else if(child.endsWith(".njs")) {
+			} else if(njsExtTest.test(child)) {
 				try {
 					parent.children[child].func = options.eval(`(async function() {\n${await fs.readFile(fullPath)}\n})`);
 				} catch(err) {
@@ -228,7 +231,8 @@ const ServeCube = {
 		const getRawPath = cube.getRawPath = async path => {
 			const {dir, paths} = getPaths(path);
 			const output = {
-				rawPath: dir
+				rawPath: dir,
+				hasIndex: false
 			};
 			let parent = tree[dir];
 			while(paths.length) {
@@ -236,6 +240,7 @@ const ServeCube = {
 				if(paths[0] === "") {
 					if(parent.index) {
 						child = parent.index;
+						output.hasIndex = true;
 					} else {
 						output.rawPath = undefined;
 						break;
@@ -253,7 +258,7 @@ const ServeCube = {
 								child = i;
 								break;
 							}
-						} else if(pageTest.test(i) && paths[0] === i.replace(pageTest, "") && !parent.children[i].test) {
+						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "") && !parent.children[i].test) {
 							child = i;
 							break;
 						}
@@ -263,7 +268,6 @@ const ServeCube = {
 					output.rawPath += `/${child}`;
 					if(paths.length === 1) {
 						output.func = parent.children[child].func;
-						output.hasIndex = !!parent.children[child].index;
 						break;
 					} else if(!parent.children[child].children) {
 						break;
@@ -376,12 +380,13 @@ const ServeCube = {
 			}
 		};
 		const renderError = async (status, req, res) => {
+			res.status(status);
 			const path = `${options.errorDir}/${status}`;
 			const {rawPath} = await getRawPath(path);
 			if(rawPath) {
 				renderLoad(path, req, res);
 			} else {
-				res.status(status).send(String(status));
+				res.send(String(status));
 			}
 		};
 		app.use(async (req, res) => {
@@ -496,13 +501,13 @@ const ServeCube = {
 										await fs.mkdir(nextPath);
 									}
 								}
-								if(i.endsWith(".njs")) {
+								if(njsExtTest.test(i)) {
 									contents = String(contents).split(htmlTest); // TODO: Don't minify content in `textarea` and `pre` tags.
 									for(let j = 1; j < contents.length; j += 2) {
 										contents[j] = contents[j].replace(brs, "").replace(whitespace, " ");
 									}
 									contents = contents.join("");
-								} else if(i.endsWith(".html") || i.endsWith(".htm")) {
+								} else if(htmlExtTest.test(i)) {
 									contents = String(contents).replace(brs, "").replace(whitespace, " ");
 								} else if(i.startsWith(`${req.dir}/`)) {
 									const type = mime.getType(i);
@@ -564,7 +569,7 @@ const ServeCube = {
 			} else if(req.rawPath) {
 				const type = mime.getType(req.decodedPath) || mime.getType(req.rawPath);
 				res.set("Content-Type", type);
-				if(req.rawPath.endsWith(".njs")) {
+				if(njsExtTest.test(req.rawPath)) {
 					renderLoad(req.dir + req.decodedPath, req, res);
 				} else {
 					if(type === "application/javascript" || type === "text/css") {
