@@ -31,19 +31,22 @@ const njsExtTest = /\.njs$/i;
 const htmlExtTest = /\.html?$/i;
 const pageExtTest = /\.(?:njs|html?)$/i;
 const indexTest = /^index\.(?:njs|html?)$/i;
+const allMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+const methodTest = /^(GET|POST|PUT|DELETE|PATCH)(?:, ?(GET|POST|PUT|DELETE|PATCH))?(?:, ?(GET|POST|PUT|DELETE|PATCH))?(?:, ?(GET|POST|PUT|DELETE|PATCH))?(?:, ?(GET|POST|PUT|DELETE|PATCH))?\.(?:[nN][jJ][sS]|[hH][tT][mM][lL]?)$/;
+const methodAllTest = /^ALL\.(?:[nN][jJ][sS]|[hH][tT][mM][lL]?)$/;
 const templateTest = /\{(\w+)}/g;
 const htmlTest = /(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g;
 const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
 const subdomainValueTest = /^.*[.\/]$/;
+const htmlReplacements = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
+const urlReplacements = [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]];
 const ServeCube = {
-	htmlReplacements: [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]],
-	urlReplacements: [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]],
 	html: function() {
 		let string = arguments[0][0];
 		const substitutions = Array.prototype.slice.call(arguments, 1);
 		for(let i = 0; i < substitutions.length; i++) {
 			let code = String(substitutions[i]);
-			for(const v of ServeCube.htmlReplacements) {
+			for(const v of htmlReplacements) {
 				code = code.replace(v[0], v[1]);
 			}
 			string += code + arguments[0][i+1];
@@ -129,15 +132,37 @@ const ServeCube = {
 		const tree = cube.tree = {};
 		const plantChild = async (parent, child, isDir, fullPath) => {
 			parent.children[child] = {};
-			if(!isDir && indexTest.test(child)) {
-				parent.index = child;
-			} else {
-				const params = [];
-				const re = pathToRegexp(child.replace(pageExtTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
-				if(params.length) {
-					parent.children[child].params = params.map(w => w.name);
-					parent.children[child].test = re;
+			if(!isDir && pageExtTest.test(child)) {
+				if(indexTest.test(child)) {
+					parent.index = child;
+				} else if(methodAllTest.test(child)) {
+					if(!parent.methods) {
+						parent.methods = {};
+					}
+					for(const v of allMethods) {
+						if(!parent.methods[v]) {
+							parent.methods[v] = child;
+						}
+					}
+				} else {
+					const methods = child.match(methodTest);
+					if(methods) {
+						if(!parent.methods) {
+							parent.methods = {};
+						}
+						for(let i = 1; i < methods.length; i++) {
+							if(methods[i]) {
+								parent.methods[methods[i]] = child;
+							}
+						}
+					}
 				}
+			}
+			const params = [];
+			const re = pathToRegexp(child.replace(pageExtTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
+			if(params.length) {
+				parent.children[child].params = params.map(w => w.name);
+				parent.children[child].test = re;
 			}
 			if(isDir) {
 				parent.children[child].children = {};
@@ -184,6 +209,16 @@ const ServeCube = {
 				if(parents[0][1].index === child) {
 					delete parents[0][1].index;
 				}
+				if(parents[0][1].methods) {
+					for(const i of Object.keys(parents[0][1].methods)) {
+						if(parents[0][1].methods[i] === child) {
+							delete parents[0][1].methods[i];
+						}
+					}
+					if(!Object.keys(parents[0][1].methods).length) {
+						delete parents[0][1].methods;
+					}
+				}
 				delete parents[0][1].children[child];
 				if(Object.keys(parents[0][1].children).length) {
 					break;
@@ -228,11 +263,11 @@ const ServeCube = {
 			}
 			await plantChild(parent, paths[0], false, fullPath);
 		};
-		const getRawPath = cube.getRawPath = async path => {
+		const getRawPath = cube.getRawPath = async (path, method) => {
+			method = method ? method.toUpperCase() : "GET";
 			const {dir, paths} = getPaths(path);
 			const output = {
-				rawPath: dir,
-				hasIndex: false
+				rawPath: dir
 			};
 			let parent = tree[dir];
 			while(paths.length) {
@@ -240,7 +275,6 @@ const ServeCube = {
 				if(paths[0] === "") {
 					if(parent.index) {
 						child = parent.index;
-						output.hasIndex = true;
 					} else {
 						output.rawPath = undefined;
 						break;
@@ -252,10 +286,10 @@ const ServeCube = {
 						if(parent.children[i].test) {
 							let matches = paths[0].match(parent.children[i].test);
 							if(matches) {
+								child = i;
 								for(let j = 0; j < parent.children[i].params.length; j++) {
 									output.params[parent.children[i].params[j]] = matches[j+1];
 								}
-								child = i;
 								break;
 							}
 						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "") && !parent.children[i].test) {
@@ -265,13 +299,26 @@ const ServeCube = {
 					}
 				}
 				if(child) {
-					output.rawPath += `/${child}`;
 					if(paths.length === 1) {
+						if(parent.children[child].methods) {
+							if(parent.children[child].methods[method]) {
+								output.rawPath += `/${child}`;
+								child = (parent = parent.children[child]).methods[method];
+							} else {
+								output.methodNotAllowed = true;
+								output.rawPath = undefined;
+								break;
+							}
+						}
+						output.rawPath += `/${child}`;
+						output.hasIndex = !!parent.children[child].index;
 						output.func = parent.children[child].func;
 						break;
 					} else if(!parent.children[child].children) {
+						output.rawPath += `/${child}`;
 						break;
 					}
+					output.rawPath += `/${child}`;
 					parent = parent.children[child];
 					paths.shift();
 				} else {
@@ -300,7 +347,7 @@ const ServeCube = {
 			if(context && !(context instanceof Object)) {
 				throw new ServeCubeError("The `context` parameter must be an object.");
 			}
-			const {rawPath, params, func} = await getRawPath(path);
+			const {rawPath, params, func} = await getRawPath(path, context.method);
 			if(!rawPath) {
 				throw new ServeCubeError(`The file \`${path}\` is not planted.`);
 			}
@@ -334,6 +381,7 @@ const ServeCube = {
 						delete returnedContext.params;
 						delete returnedContext.req;
 						delete returnedContext.res;
+						delete returnedContext.method;
 						if(context.cache) {
 							delete returnedContext.cache;
 							if(!loadCache[context.rawPath]) {
@@ -357,7 +405,8 @@ const ServeCube = {
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
 				req,
-				res
+				res,
+				method: req.method
 			});
 			if(result.redirect) {
 				if(result.status) {
@@ -382,7 +431,7 @@ const ServeCube = {
 		const renderError = async (status, req, res) => {
 			res.status(status);
 			const path = `${options.errorDir}/${status}`;
-			const {rawPath} = await getRawPath(path);
+			const {rawPath} = await getRawPath(path, req.method);
 			if(rawPath) {
 				renderLoad(path, req, res);
 			} else {
@@ -406,7 +455,7 @@ const ServeCube = {
 				redirect = `${req.protocol}://${redirect}`;
 			}
 			let url = req.url;
-			for(const v of ServeCube.urlReplacements) {
+			for(const v of urlReplacements) {
 				url = url.replace(v[0], v[1]);
 			}
 			if(req.url !== url) {
@@ -428,10 +477,15 @@ const ServeCube = {
 					return;
 				}
 				const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
-				const {rawPath, hasIndex} = await getRawPath(req.dir + (req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex)));
-				if(!rawPath && hasIndex) {
-					res.redirect(`${req.url}/`);
-					return;
+				const {rawPath, hasIndex, methodNotAllowed} = await getRawPath(req.dir + (req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex)), req.method);
+				if(!rawPath) {
+					if(hasIndex) {
+						res.redirect(`${req.url}/`);
+						return;
+					} else if(methodNotAllowed) {
+						renderError(405, req, res);
+						return;
+					}
 				}
 				req.rawPath = rawPath;
 				req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
