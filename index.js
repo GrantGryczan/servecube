@@ -287,6 +287,7 @@ const ServeCube = {
 							let matches = paths[0].match(parent.children[i].test);
 							if(matches) {
 								child = i;
+								output.params = {};
 								for(let j = 0; j < parent.children[i].params.length; j++) {
 									output.params[parent.children[i].params[j]] = matches[j+1];
 								}
@@ -368,7 +369,7 @@ const ServeCube = {
 				});
 				context.value = "";
 				let cacheIndex;
-				return loadCache[context.rawPath] && loadCache[context.rawPath][cacheIndex = `:${loadCache[context.rawPath].discriminate instanceof Function ? loadCache[context.rawPath].discriminate(context) : ""}`] ? {
+				return loadCache[context.rawPath] && loadCache[cacheIndex = `:${loadCache[context.rawPath](context)}`] ? {
 					...context,
 					...loadCache[context.rawPath][cacheIndex]
 				} : await new Promise((resolve, reject) => {
@@ -384,12 +385,12 @@ const ServeCube = {
 						delete returnedContext.method;
 						if(context.cache) {
 							delete returnedContext.cache;
-							if(!loadCache[context.rawPath]) {
-								loadCache[context.rawPath] = {
-									discriminate: context.cache instanceof Function ? context.cache : true
-								};
+							if(context.cache instanceof Function) {
+								if(!loadCache[context.rawPath]) {
+									loadCache[context.rawPath] = context.cache;
+								}
+								loadCache[`:${context.cache(context)}`] = returnedContext;
 							}
-							loadCache[context.rawPath][`:${context.cache instanceof Function ? context.cache(context) : ""}`] = returnedContext;
 						}
 						resolve(returnedContext);
 					};
@@ -409,6 +410,13 @@ const ServeCube = {
 				method: req.method,
 				headers: {}
 			});
+			if(result.headers) {
+				for(const i of Object.keys(result.headers)) {
+					if(result.headers[i]) {
+						res.set(i, result.headers[i]);
+					}
+				}
+			}
 			if(result.redirect) {
 				if(result.status) {
 					res.redirect(result.status, result.redirect);
@@ -416,13 +424,6 @@ const ServeCube = {
 					res.redirect(result.redirect);
 				}
 			} else {
-				if(result.headers) {
-					for(const i of Object.keys(result.headers)) {
-						if(result.headers[i]) {
-							res.set(i, result.headers[i]);
-						}
-					}
-				}
 				if(result.status) {
 					res.status(result.status);
 				}
