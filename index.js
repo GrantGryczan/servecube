@@ -371,7 +371,7 @@ const ServeCube = {
 				let cacheIndex;
 				return loadCache[context.rawPath] && loadCache[cacheIndex = `:${loadCache[context.rawPath](context)}`] ? {
 					...context,
-					...loadCache[context.rawPath][cacheIndex]
+					...loadCache[cacheIndex]
 				} : await new Promise((resolve, reject) => {
 					context.done = () => {
 						const returnedContext = {
