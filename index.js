@@ -406,7 +406,8 @@ const ServeCube = {
 			const result = await load(path, {
 				req,
 				res,
-				method: req.method
+				method: req.method,
+				headers: {}
 			});
 			if(result.redirect) {
 				if(result.status) {
