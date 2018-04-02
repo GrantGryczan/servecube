@@ -40,6 +40,10 @@ const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
 const subdomainValueTest = /^.*[.\/]$/;
 const htmlReplacements = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
 const urlReplacements = [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]];
+const byFirstItems = v => v[0];
+const byNames = v => v.name;
+const byNoLastItems = v => v.slice(0, -1);
+const byUniqueDirectories = (v, i, t) => v.endsWith("/") && t.indexOf(v) === i;
 const ServeCube = {
 	html: function() {
 		let string = arguments[0][0];
@@ -161,7 +165,7 @@ const ServeCube = {
 			const params = [];
 			const re = pathToRegexp(child.replace(pageExtTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
 			if(params.length) {
-				parent.children[child].params = params.map(w => w.name);
+				parent.children[child].params = params.map(byNames);
 				parent.children[child].test = re;
 			}
 			if(isDir) {
@@ -201,7 +205,7 @@ const ServeCube = {
 				if(parent.children && parent.children[child]) {
 					parents.unshift([child, parent = parent.children[child]]);
 				} else {
-					throw new ServeCubeError(`The file \`${parents.map(v => v[0]).join("/")}/${child}\` is not planted.`);
+					throw new ServeCubeError(`The file \`${parents.map(byFirstItems).join("/")}/${child}\` is not planted.`);
 				}
 			}
 			while(parents.length) {
@@ -338,7 +342,7 @@ const ServeCube = {
 			}
 			return output;
 		};
-		for(const v of [`${options.errorDir}/`, ...Object.values(options.subdomains)].filter((v, i, a) => v.endsWith("/") && a.indexOf(v) === i).map(v => v.slice(0, -1))) {
+		for(const v of [`${options.errorDir}/`, ...Object.values(options.subdomains)].filter(byUniqueDirectories).map(byNoLastItems)) {
 			await plant(tree[v] = {
 				children: {}
 			}, v);
