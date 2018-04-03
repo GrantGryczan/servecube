@@ -38,7 +38,7 @@ const templateTest = /\{(\w+)}/g;
 const htmlTest = /(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g;
 const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
 const subdomainValueTest = /^.*[.\/]$/;
-const htmlReplacements = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
+const htmlReplacements = [/*[/&/g, "&amp;"], */[/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
 const urlReplacements = [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]];
 const byFirstItems = v => v[0];
 const byNames = v => v.name;
