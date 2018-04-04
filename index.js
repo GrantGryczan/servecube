@@ -460,33 +460,38 @@ const ServeCube = {
 			} else if(redirect !== false) {
 				redirect = `${req.protocol}://${redirect}`;
 			}
-			let url = req.url;
+			try {
+				req.decodedURL = decodeURIComponent(req.url);
+			} catch(err) {
+				renderError(400, req, res);
+				return;
+			}
+			const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
+			req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex);
+			req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
+			let url = req.decodedPath;
 			for(const v of urlReplacements) {
 				url = url.replace(v[0], v[1]);
 			}
-			if(req.url !== url) {
+			if(queryIndex) {
+				url += `?${req.queryString}`;
+			}
+			if(req.decodedURL !== url) {
 				if(redirect === false) {
 					redirect = url;
 				} else {
 					redirect += options.domain + url;
 				}
 			} else if(redirect !== false) {
-				redirect += options.domain + req.url;
+				redirect += options.domain + req.decodedURL;
 			}
 			if(redirect !== false) {
 				res.redirect(redirect);
 			} else {
-				try {
-					req.decodedURL = decodeURIComponent(req.url);
-				} catch(err) {
-					renderError(400, req, res);
-					return;
-				}
-				const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
-				const {rawPath, hasIndex, methodNotAllowed} = await getRawPath(req.dir + (req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex)), req.method);
+				const {rawPath, hasIndex, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
 				if(!rawPath) {
 					if(hasIndex) {
-						res.redirect(`${req.url}/`);
+						res.redirect(`${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`); // TODO: the opposite
 						return;
 					} else if(methodNotAllowed) {
 						renderError(405, req, res);
@@ -494,7 +499,6 @@ const ServeCube = {
 					}
 				}
 				req.rawPath = rawPath;
-				req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
 				req.next();
 			}
 		});
