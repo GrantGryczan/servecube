@@ -631,11 +631,12 @@ const ServeCube = {
 					renderError(503, req, res);
 				}
 			} else if(req.rawPath) {
-				const type = mime.getType(req.decodedPath) || mime.getType(req.rawPath);
-				res.set("Content-Type", type);
 				if(njsExtTest.test(req.rawPath)) {
+					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
 					renderLoad(req.dir + req.decodedPath, req, res);
 				} else {
+					const type = mime.getType(req.rawPath);
+					res.set("Content-Type", type);
 					if(type === "application/javascript" || type === "text/css") {
 						res.set("SourceMap", `${req.decodedPath.slice(req.decodedPath.lastIndexOf("/")+1)}.map`);
 					}
