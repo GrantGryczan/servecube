@@ -27,12 +27,16 @@ class ServeCubeError extends Error {
 const backslashes = /\\/g;
 const brs = /\n/g;
 const whitespace = /\s+/g;
+const escapeRegExpTest = /([\\()[|{^$.+*?])/g;
+const escapeRegExp = str => str.replace(escapeRegExpTest, "\\$1");
 const njsExtTest = /\.njs$/i;
 const htmlExtTest = /\.html?$/i;
 const pageExtTest = /\.(?:njs|html?)$/i;
 const indexTest = /^index\.(?:njs|html?)$/i;
 const allMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
-const methodTest = /^(GET|POST|PUT|DELETE|PATCH)(?:, ?(GET|POST|PUT|DELETE|PATCH))?(?:, ?(GET|POST|PUT|DELETE|PATCH))?(?:, ?(GET|POST|PUT|DELETE|PATCH))?(?:, ?(GET|POST|PUT|DELETE|PATCH))?\.(?:[Nn][Jj][Ss]|[Hh][Tt][Mm][Ll]?)$/;
+const allMethodsString = allMethods.join(", ");
+const allMethodsExp = `(${allMethods.join("|")})`;
+const methodTest = new RegExp(`^${allMethodsExp}(?:, ?${allMethodsExp})?(?:, ?${allMethodsExp})?(?:, ?${allMethodsExp})?(?:, ?${allMethodsExp})?\.(?:[Nn][Jj][Ss]|[Hh][Tt][Mm][Ll]?)$`);
 const methodAllTest = /^ALL\.(?:[Nn][Jj][Ss]|[Hh][Tt][Mm][Ll]?)$/;
 const templateTest = /\{(\w+)}/g;
 const htmlTest = /(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g;
@@ -121,6 +125,7 @@ const ServeCube = {
 		if(typeof options.githubToken === "string") {
 			requestOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
+		const originTest = new RegExp(`^(https?://(?:.+\\.)?${escapeRegExp(options.domain)}(?::\\d{1,5})?)$`);
 		const app = cube.app = express();
 		app.set("trust proxy", true);
 		const getPaths = (path, paramName) => {
@@ -291,13 +296,15 @@ const ServeCube = {
 							let matches = paths[0].match(parent.children[i].test);
 							if(matches) {
 								child = i;
-								output.params = {};
+								if(!output.params) {
+									output.params = {};
+								}
 								for(let j = 0; j < parent.children[i].params.length; j++) {
 									output.params[parent.children[i].params[j]] = matches[j+1];
 								}
 								break;
 							}
-						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "") && !parent.children[i].test) {
+						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "")) {
 							child = i;
 							break;
 						}
@@ -306,6 +313,7 @@ const ServeCube = {
 				if(child) {
 					if(paths.length === 1) {
 						if(parent.children[child].methods) {
+							output.methods = parent.children[child].methods;
 							if(parent.children[child].methods[method]) {
 								output.rawPath += `/${child}`;
 								child = (parent = parent.children[child]).methods[method];
@@ -406,11 +414,12 @@ const ServeCube = {
 				};
 			}
 		};
-		const renderLoad = async (path, req, res) => {
+		const renderLoad = async (path, req, res, status) => {
 			res.set("Content-Type", "text/html");
 			const result = await load(path, {
 				req,
 				res,
+				status,
 				method: req.method,
 				headers: {}
 			});
@@ -439,15 +448,20 @@ const ServeCube = {
 			const path = `${options.errorDir}/${status}`;
 			const {rawPath} = await getRawPath(path, req.method);
 			if(rawPath) {
-				renderLoad(path, req, res);
+				renderLoad(path, req, res, status);
 			} else {
 				res.send(String(status));
 			}
 		};
 		app.use(async (req, res) => {
 			res.set("X-Magic", "real");
-			res.set("Access-Control-Expose-Headers", "X-Magic");
 			res.set("X-Frame-Options", "SAMEORIGIN");
+			res.set("Vary", "Origin");
+			const origin = req.get("Origin");
+			if(origin && originTest.test(origin)) {
+				res.set("Access-Control-Expose-Headers", "X-Magic");
+				res.set("Access-Control-Allow-Origin", origin);
+			}
 			let redirect = false;
 			const subdomain = options.subdomains[req.subdomain = req.subdomains.join(".")] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
 			if(subdomain.endsWith(".")) {
@@ -488,10 +502,22 @@ const ServeCube = {
 			if(redirect !== false) {
 				res.redirect(redirect);
 			} else {
-				const {rawPath, hasIndex, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
+				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
+				let allowedMethods = methods ? Object.keys(methods).join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
+				if(allowedMethods) {
+					allowedMethods = `OPTIONS, ${allowedMethods}`;
+					res.set("Allow", allowedMethods);
+					if(origin) {
+						res.set("Access-Control-Allow-Methods", allowedMethods);
+					}
+				}
+				if(req.method === "OPTIONS") {
+					res.send();
+					return;
+				}
 				if(!rawPath) {
 					if(hasIndex) {
-						res.redirect(`${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`); // TODO: the opposite
+						res.redirect(req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`); // TODO: the opposite
 						return;
 					} else if(methodNotAllowed) {
 						renderError(405, req, res);
@@ -634,13 +660,15 @@ const ServeCube = {
 				if(njsExtTest.test(req.rawPath)) {
 					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
 					renderLoad(req.dir + req.decodedPath, req, res);
-				} else {
+				} else if(req.method === "GET") {
 					const type = mime.getType(req.rawPath);
 					res.set("Content-Type", type);
 					if(type === "application/javascript" || type === "text/css") {
 						res.set("SourceMap", `${req.decodedPath.slice(req.decodedPath.lastIndexOf("/")+1)}.map`);
 					}
 					fs.createReadStream(options.basePath + req.rawPath).pipe(res);
+				} else {
+					renderError(405, req, res);
 				}
 			} else {
 				renderError(404, req, res);
