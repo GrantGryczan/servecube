@@ -536,9 +536,6 @@ const ServeCube = {
 			}
 		}
 		app.all("*", async (req, res) => {
-			if(req.method === "GET") {
-				res.set("Cache-Control", "max-age=86400");
-			}
 			if(options.githubSecret && req.decodedPath === options.githubPayloadURL) {
 				const signature = req.get("X-Hub-Signature");
 				if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}` && req.get("X-GitHub-Event") === "push") {
@@ -661,6 +658,9 @@ const ServeCube = {
 					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
 					renderLoad(req.dir + req.decodedPath, req, res);
 				} else if(req.method === "GET") {
+					if(!res.get("Cache-Control")) {
+						res.set("Cache-Control", "max-age=86400"); 
+					}
 					const type = mime.getType(req.rawPath);
 					res.set("Content-Type", type);
 					if(type === "application/javascript" || type === "text/css") {
