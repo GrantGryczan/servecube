@@ -659,7 +659,7 @@ const ServeCube = {
 					renderLoad(req.dir + req.decodedPath, req, res);
 				} else if(req.method === "GET") {
 					if(!res.get("Cache-Control")) {
-						res.set("Cache-Control", "max-age=86400"); 
+						res.set("Cache-Control", "max-age=86400");
 					}
 					const type = mime.getType(req.rawPath);
 					res.set("Content-Type", type);
