@@ -3,6 +3,7 @@ const http = require("http");
 const https = require("https");
 const request = require("request-promise-native");
 const express = require("express");
+const bodyParser = require("body-parser");
 const pathToRegexp = require("path-to-regexp");
 const childProcess = require("child_process");
 const crypto = require("crypto");
@@ -453,6 +454,10 @@ const ServeCube = {
 				res.send(String(status));
 			}
 		};
+		app.use(bodyParser.raw({
+			limit: "100mb",
+			type: "*/*"
+		}));
 		app.use(async (req, res) => {
 			res.set("X-Magic", "real");
 			res.set("X-Frame-Options", "SAMEORIGIN");
@@ -538,120 +543,124 @@ const ServeCube = {
 		app.all("*", async (req, res) => {
 			if(options.githubSecret && req.decodedPath === options.githubPayloadURL) {
 				const signature = req.get("X-Hub-Signature");
-				if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}` && req.get("X-GitHub-Event") === "push") {
+				if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}`) {
+					if(req.get("X-GitHub-Event") !== "push") {
+						res.send();
+						return;
+					}
 					const payload = JSON.parse(req.body);
 					const branch = payload.ref.slice(payload.ref.lastIndexOf("/")+1);
-					if(branch === "master") {
-						const files = {};
-						for(const v of payload.commits) {
-							for(const w of v.removed) {
-								files[w] = 1;
-							}
-							for(const w of v.modified) {
-								files[w] = 2;
-							}
-							for(const w of v.added) {
-								files[w] = 3;
-							}
+					if(branch !== "master") {
+						res.send();
+						return;
+					}
+					const files = {};
+					for(const v of payload.commits) {
+						for(const w of v.removed) {
+							files[w] = 1;
 						}
-						for(const i of Object.keys(files)) {
-							const fullPath = options.basePath + i;
-							try {
-								limb(i);
-							} catch(err) {}
-							if(files[i] === 1) {
-								if(await fs.exists(fullPath)) {
-									await fs.unlink(fullPath);
-									const type = mime.getType(i);
-									if(type === "application/javascript" || type === "text/css") {
-										await fs.unlink(`${fullPath}.map`);
+						for(const w of v.modified) {
+							files[w] = 2;
+						}
+						for(const w of v.added) {
+							files[w] = 3;
+						}
+					}
+					for(const i of Object.keys(files)) {
+						const fullPath = options.basePath + i;
+						try {
+							limb(i);
+						} catch(err) {}
+						if(files[i] === 1) {
+							if(await fs.exists(fullPath)) {
+								await fs.unlink(fullPath);
+								const type = mime.getType(i);
+								if(type === "application/javascript" || type === "text/css") {
+									await fs.unlink(`${fullPath}.map`);
+								}
+							}
+							let index = i.length;
+							while((index = i.lastIndexOf("/", index)-1) !== -2) {
+								const path = options.basePath + i.slice(0, index+1);
+								if(await fs.exists(path)) {
+									try {
+										await fs.rmdir(path);
+									} catch(err) {
+										break;
 									}
 								}
-								let index = i.length;
-								while((index = i.lastIndexOf("/", index)-1) !== -2) {
-									const path = options.basePath + i.slice(0, index+1);
-									if(await fs.exists(path)) {
-										try {
-											await fs.rmdir(path);
-										} catch(err) {
-											break;
+							}
+						} else if(files[i] === 2 || files[i] === 3) {
+							const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, requestOptions));
+							let contents = Buffer.from(file.content, file.encoding);
+							let index = 0;
+							while(index = i.indexOf("/", index)+1) {
+								const nextPath = options.basePath + i.slice(0, index-1);
+								if(!await fs.exists(nextPath)) {
+									await fs.mkdir(nextPath);
+								}
+							}
+							if(njsExtTest.test(i)) {
+								contents = String(contents).split(htmlTest); // TODO: Don't minify content in `textarea` and `pre` tags.
+								for(let j = 1; j < contents.length; j += 2) {
+									contents[j] = contents[j].replace(brs, "").replace(whitespace, " ");
+								}
+								contents = contents.join("");
+							} else if(htmlExtTest.test(i)) {
+								contents = String(contents).replace(brs, "").replace(whitespace, " ");
+							} else if(i.startsWith(`${req.dir}/`)) {
+								const type = mime.getType(i);
+								if(type === "application/javascript") {
+									const filename = i.slice(i.lastIndexOf("/")+1);
+									const compiled = babel.transform(String(contents), {
+										ast: false,
+										comments: false,
+										compact: true,
+										filename,
+										minified: true,
+										presets: ["env"],
+										sourceMaps: true
+									});
+									const result = UglifyJS.minify(compiled.code, {
+										parse: {
+											html5_comments: false
+										},
+										compress: {
+											passes: 2
+										},
+										sourceMap: {
+											content: JSON.stringify(compiled.map),
+											filename
 										}
-									}
+									});
+									contents = result.code;
+									await fs.writeFile(`${fullPath}.map`, result.map);
+								} else if(type === "text/css") {
+									const output = new CleanCSS({
+										inline: false,
+										sourceMap: true
+									}).minify(String(contents));
+									contents = output.styles;
+									const sourceMap = JSON.parse(output.sourceMap);
+									sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
+									await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
 								}
-							} else if(files[i] === 2 || files[i] === 3) {
-								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, requestOptions));
-								let contents = Buffer.from(file.content, file.encoding);
-								let index = 0;
-								while(index = i.indexOf("/", index)+1) {
-									const nextPath = options.basePath + i.slice(0, index-1);
-									if(!await fs.exists(nextPath)) {
-										await fs.mkdir(nextPath);
-									}
-								}
-								if(njsExtTest.test(i)) {
-									contents = String(contents).split(htmlTest); // TODO: Don't minify content in `textarea` and `pre` tags.
-									for(let j = 1; j < contents.length; j += 2) {
-										contents[j] = contents[j].replace(brs, "").replace(whitespace, " ");
-									}
-									contents = contents.join("");
-								} else if(htmlExtTest.test(i)) {
-									contents = String(contents).replace(brs, "").replace(whitespace, " ");
-								} else if(i.startsWith(`${req.dir}/`)) {
-									const type = mime.getType(i);
-									if(type === "application/javascript") {
-										const filename = i.slice(i.lastIndexOf("/")+1);
-										const compiled = babel.transform(String(contents), {
-											ast: false,
-											comments: false,
-											compact: true,
-											filename,
-											minified: true,
-											presets: ["env"],
-											sourceMaps: true
-										});
-										const result = UglifyJS.minify(compiled.code, {
-											parse: {
-												html5_comments: false
-											},
-											compress: {
-												passes: 2
-											},
-											sourceMap: {
-												content: JSON.stringify(compiled.map),
-												filename
-											}
-										});
-										contents = result.code;
-										await fs.writeFile(`${fullPath}.map`, result.map);
-									} else if(type === "text/css") {
-										const output = new CleanCSS({
-											inline: false,
-											sourceMap: true
-										}).minify(String(contents));
-										contents = output.styles;
-										const sourceMap = JSON.parse(output.sourceMap);
-										sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
-										await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
-									}
-								}
-								await fs.writeFile(fullPath, contents);
-								try {
-									await replant(i);
-								} catch(err) {}
 							}
+							await fs.writeFile(fullPath, contents);
+							try {
+								await replant(i);
+							} catch(err) {}
 						}
-						res.send();
-						if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)]) {
-							if(files["package.json"]) {
-								childProcess.spawnSync("npm", ["install"]);
-							}
-							process.exit();
+					}
+					res.send();
+					if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)]) {
+						if(files["package.json"]) {
+							childProcess.spawnSync("npm", ["install"]);
 						}
-					} else {
-						res.send();
+						process.exit();
 					}
 				} else {
-					renderError(503, req, res);
+					renderError(403, req, res);
 				}
 			} else if(req.rawPath) {
 				if(njsExtTest.test(req.rawPath)) {
