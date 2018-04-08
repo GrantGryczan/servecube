@@ -594,7 +594,13 @@ const ServeCube = {
 								}
 							}
 						} else if(files[i] === 2 || files[i] === 3) {
-							const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, requestOptions));
+							let file;
+							try {
+								file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, requestOptions));
+							} catch(err) {
+								console.error(err);
+								continue;
+							}
 							let contents = Buffer.from(file.content, file.encoding);
 							let index = 0;
 							while(index = i.indexOf("/", index)+1) {
