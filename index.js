@@ -69,7 +69,7 @@ const ServeCube = {
 			options.eval = eval;
 		}
 		if(typeof options.domain !== "string") {
-			throw new ServeCubeError("The `domain` option must be defined.");
+			throw new ServeCubeError("The `domain` option must be a string.");
 		}
 		if(typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
@@ -129,6 +129,9 @@ const ServeCube = {
 		const originTest = new RegExp(`^(https?://(?:.+\\.)?${escapeRegExp(options.domain)}(?::\\d{1,5})?)$`);
 		const app = cube.app = express();
 		app.set("trust proxy", true);
+		if(!options.domain.includes(".")) {
+			app.set("subdomain offset", 1);
+		}
 		const getPaths = (path, paramName) => {
 			if(typeof path !== "string") {
 				throw new ServeCubeError(`The \`${paramName || "path"}\` parameter must be a string.`);
