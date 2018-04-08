@@ -576,7 +576,10 @@ const ServeCube = {
 								await fs.unlink(fullPath);
 								const type = mime.getType(i);
 								if(type === "application/javascript" || type === "text/css") {
-									await fs.unlink(`${fullPath}.map`);
+									const mapPath = `${fullPath}.map`;
+									if(await fs.exists(mapPath)) {
+										await fs.unlink(mapPath);
+									}
 								}
 							}
 							let index = i.length;
