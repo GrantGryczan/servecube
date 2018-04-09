@@ -1,7 +1,7 @@
 {
 	"name": "servecube",
 	"version": "1.11.10",
-	"description": "A Node web server",
+	"description": "A Node web server optimized for websites and RESTful web services",
 	"main": "index.js",
 	"repository": {
 		"type": "git",
