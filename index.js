@@ -80,10 +80,14 @@ const ServeCube = {
 			options.basePath = `${options.basePath}/`;
 		}
 		options.basePath = options.basePath.replace(backslashes, "/");
-		if(typeof options.errorDir !== "string") {
-			options.errorDir = "error";
-		} else if(options.errorDir.endsWith("/")) {
-			options.errorDir = options.errorDir.slice(0, -1);
+		if(typeof options.errorDir === "string") {
+			if(options.errorDir.startsWith("/")) {
+				options.errorDir = options.errorDir.slice(1);
+			} else if(options.errorDir.endsWith("/")) {
+				options.errorDir = options.errorDir.slice(0, -1);
+			}
+		} else {
+			options.errorDir = undefined;
 		}
 		if(typeof options.serverPath !== "string") {
 			options.serverPath = "server.js";
@@ -357,7 +361,11 @@ const ServeCube = {
 			}
 			return output;
 		};
-		for(const v of [`${options.errorDir}/`, ...Object.values(options.subdomains)].filter(byUniqueDirectories).map(byNoLastItems)) {
+		const dirs = [...Object.values(options.subdomains)];
+		if(options.errorDir) {
+			dirs.push(`${options.errorDir}/`);
+		}
+		for(const v of dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
 			await plant(tree[v] = {
 				children: {}
 			}, v);
@@ -452,12 +460,17 @@ const ServeCube = {
 		};
 		const renderError = async (status, req, res) => {
 			res.status(status);
-			const path = `${options.errorDir}/${status}`;
-			const {rawPath} = await getRawPath(path, req.method);
-			if(rawPath) {
-				renderLoad(path, req, res, status);
+			const stringStatus = String(status);
+			if(options.errorDir) {
+				const path = `${options.errorDir}/${stringStatus}`;
+				const {rawPath} = await getRawPath(path, req.method);
+				if(rawPath) {
+					renderLoad(path, req, res, status);
+				} else {
+					res.send(stringStatus);
+				}
 			} else {
-				res.send(String(status));
+				res.send(stringStatus);
 			}
 		};
 		app.use(bodyParser.raw({
