@@ -64,7 +64,10 @@ const ServeCube = {
 	},
 	serve: async options => {
 		const cube = {};
-		options = options instanceof Object ? options : {};
+		if(!(options instanceof Object)) {
+			throw new ServeCubeError("The `options` parameter must be an object.");
+		}
+		options = {...options};
 		if(!(options.eval instanceof Function)) {
 			options.eval = eval;
 		}
