@@ -1,2 +1,2 @@
 # ServeCube
-A Node web server optimized for websites and RESTful web services
+A Node web framework optimized for websites and RESTful web services
