@@ -89,9 +89,6 @@ const ServeCube = {
 		} else {
 			options.errorDir = undefined;
 		}
-		if(typeof options.serverPath !== "string") {
-			options.serverPath = "server.js";
-		}
 		if(typeof options.httpPort !== "number") {
 			options.httpPort = 8080;
 		}
