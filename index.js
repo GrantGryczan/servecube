@@ -121,7 +121,11 @@ const ServeCube = {
 			}
 			options.subdomains["*"] = ".";
 		}
-		if(typeof options.githubSecret !== "string") {
+		if(typeof options.githubSecret === "string") {
+			if(options.githubSubdomain === undefined) {
+				options.githubSubdomain = "www";
+			}
+		} else {
 			options.githubSecret = false;
 		}
 		const requestOptions = {
