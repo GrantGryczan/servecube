@@ -486,16 +486,10 @@ const ServeCube = {
 				res.set("Access-Control-Allow-Origin", origin);
 			}
 			let redirect = false;
-			const subdomain = options.subdomains[req.subdomain = req.subdomains.join(".")] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
-			if(subdomain.endsWith(".")) {
-				redirect = subdomain === "." ? "" : subdomain;
-			} else {
-				req.dir = subdomain.slice(0, -1);
-			}
 			if(options.httpsRedirect && req.protocol === "http") {
-				redirect = `https://${redirect || ""}`;
+				redirect = "https://";
 			} else if(redirect !== false) {
-				redirect = `${req.protocol}://${redirect}`;
+				redirect = `${req.protocol}://`;
 			}
 			try {
 				req.decodedURL = decodeURIComponent(req.url);
@@ -503,63 +497,8 @@ const ServeCube = {
 				renderError(400, req, res);
 				return;
 			}
-			const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
-			req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex);
-			req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
-			let url = req.decodedPath;
-			for(const v of urlReplacements) {
-				url = url.replace(v[0], v[1]);
-			}
-			if(queryIndex) {
-				url += `?${req.queryString}`;
-			}
-			if(req.decodedURL !== url) {
-				if(redirect === false) {
-					redirect = url;
-				} else {
-					redirect += options.domain + url;
-				}
-			} else if(redirect !== false) {
-				redirect += options.domain + req.decodedURL;
-			}
-			if(redirect !== false) {
-				res.redirect(redirect);
-			} else {
-				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
-				let allowedMethods = methods ? Object.keys(methods).join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
-				if(allowedMethods) {
-					allowedMethods = `OPTIONS, ${allowedMethods}`;
-					res.set("Allow", allowedMethods);
-					if(origin) {
-						res.set("Access-Control-Allow-Methods", allowedMethods);
-					}
-				}
-				if(req.method === "OPTIONS") {
-					res.send();
-					return;
-				}
-				if(!rawPath) {
-					if(hasIndex) {
-						res.redirect(req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`); // TODO: the opposite
-						return;
-					} else if(methodNotAllowed) {
-						renderError(405, req, res);
-						return;
-					}
-				}
-				req.rawPath = rawPath;
-				req.next();
-			}
-		});
-		if(options.middleware instanceof Array) {
-			for(const v of options.middleware) {
-				if(v instanceof Function) {
-					app.use(v);
-				}
-			}
-		}
-		app.all("*", async (req, res) => {
-			if(options.githubSecret && req.decodedPath === options.githubPayloadURL) {
+			const subdomain = options.subdomains[req.subdomain = req.subdomains.join(".")] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
+			if(!redirect && options.githubSecret && req.subdomain === options.githubSubdomain && req.decodedURL === options.githubPayloadURL) {
 				const signature = req.get("X-Hub-Signature");
 				if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}`) {
 					if(req.get("X-GitHub-Event") !== "push") {
@@ -635,7 +574,7 @@ const ServeCube = {
 								contents = contents.join("");
 							} else if(htmlExtTest.test(i)) {
 								contents = String(contents).replace(brs, "").replace(whitespace, " ");
-							} else if(i.startsWith(`${req.dir}/`)) {
+							} else if(i.startsWith(`${req.dir}/`)) {// TODO
 								const type = mime.getType(i);
 								if(type === "application/javascript") {
 									const filename = i.slice(i.lastIndexOf("/")+1);
@@ -689,7 +628,70 @@ const ServeCube = {
 				} else {
 					renderError(403, req, res);
 				}
-			} else if(req.rawPath) {
+			} else if(subdomain.endsWith(".")) {
+				if(subdomain !== ".") {
+					redirect += subdomain;
+				}
+			} else {
+				req.dir = subdomain.slice(0, -1);
+			}
+			const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
+			req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex);
+			req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
+			let url = req.decodedPath;
+			for(const v of urlReplacements) {
+				url = url.replace(v[0], v[1]);
+			}
+			if(queryIndex) {
+				url += `?${req.queryString}`;
+			}
+			if(req.decodedURL !== url) {
+				if(redirect === false) {
+					redirect = url;
+				} else {
+					redirect += options.domain + url;
+				}
+			} else if(redirect !== false) {
+				redirect += options.domain + req.decodedURL;
+			}
+			if(redirect !== false) {
+				res.redirect(redirect);
+			} else {
+				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
+				let allowedMethods = methods ? Object.keys(methods).join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
+				if(allowedMethods) {
+					allowedMethods = `OPTIONS, ${allowedMethods}`;
+					res.set("Allow", allowedMethods);
+					if(origin) {
+						res.set("Access-Control-Allow-Methods", allowedMethods);
+					}
+				}
+				if(req.method === "OPTIONS") {
+					res.send();
+					return;
+				}
+				if(!rawPath) {
+					if(hasIndex) {
+						res.redirect(req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`); // TODO: the opposite
+						return;
+					} else if(methodNotAllowed) {
+						renderError(405, req, res);
+						return;
+					}
+				}
+				req.rawPath = rawPath;
+				req.next();
+			}
+		});
+		if(options.middleware instanceof Array) {
+			for(const v of options.middleware) {
+				if(v instanceof Function) {
+					app.use(v);
+				}
+			}
+		}
+		app.all("*", async (req, res) => {
+			if(req.rawPath) {
 				if(njsExtTest.test(req.rawPath)) {
 					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
 					renderLoad(req.dir + req.decodedPath, req, res);
