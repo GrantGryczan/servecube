@@ -736,7 +736,7 @@ const ServeCube = {
 			}
 		});
 		http.createServer(app).listen(options.httpPort);
-		if(options.tls) {
+		if(options.tls instanceof Object) {
 			https.createServer(options.tls, app).listen(options.httpsPort);
 		}
 		return cube;
