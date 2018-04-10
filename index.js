@@ -103,11 +103,13 @@ const ServeCube = {
 		if(options.subdomains instanceof Object) {
 			for(const i of Object.keys(options.subdomains)) {
 				if(subdomainTest.test(i)) {
-					if(!subdomainValueTest.test(options.subdomains[i])) {
+					if(typeof options.subdomains[i] !== "string") {
+						throw new ServeCubeError(`The subdomain value associated with \`${i}\` is not a string.`);
+					} else if(!subdomainValueTest.test(options.subdomains[i])) {
 						throw new ServeCubeError(`"${options.subdomains[i]}" is not a valid subdomain value.`);
 					}
 				} else {
-					throw new ServeCubeError(`"${options.subdomains[i]}" is not a valid subdomain.`);
+					throw new ServeCubeError(`"${i}" is not a valid subdomain.`);
 				}
 			}
 		} else {
