@@ -123,7 +123,7 @@ const ServeCube = {
 		}
 		if(typeof options.githubSecret === "string") {
 			if(options.githubSubdomain === undefined) {
-				options.githubSubdomain = "www";
+				options.githubSubdomain = "";
 			}
 		} else {
 			options.githubSecret = false;
