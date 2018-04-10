@@ -25,6 +25,7 @@ class ServeCubeError extends Error {
 		return err;
 	}
 }
+const AsyncFunction = (async () => {}).constructor;
 const backslashes = /\\/g;
 const brs = /\n/g;
 const whitespace = /\s+/g;
@@ -136,7 +137,8 @@ const ServeCube = {
 		if(typeof options.githubToken === "string") {
 			requestOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
-		const originTest = new RegExp(`^(https?://(?:.+\\.)?${escapeRegExp(options.domain)}(?::\\d{1,5})?)$`);
+		const portIndex = options.domain.indexOf(":");
+		const originTest = new RegExp(`^(https?://(?:.+\\.)?${escapeRegExp(portIndex === -1 ? options.domain : options.domain.slice(portIndex))}(?::\\d{1,5})?)$`);
 		const app = cube.app = express();
 		app.set("trust proxy", true);
 		if(!options.domain.includes(".")) {
@@ -193,10 +195,10 @@ const ServeCube = {
 				try {
 					parent.children[child].func = options.eval(`(async function() {\n${await fs.readFile(fullPath)}\n})`);
 				} catch(err) {
-					throw new ServeCubeError(`An occured while evaluating \`${fullPath}\`.\n${err.name}: ${err.message}`);
+					throw new ServeCubeError(`An error occured while evaluating \`${fullPath}\`.\n${err.stack}`);
 				}
-				if(!(parent.children[child].func instanceof Function)) {
-					throw new ServeCubeError("The `eval` option must return the evaluated input, which should always be a function.");
+				if(!(parent.children[child].func instanceof AsyncFunction)) {
+					throw new ServeCubeError("The `eval` option must return the evaluated input, which should always be an async function.");
 				}
 			}
 		}
@@ -364,11 +366,11 @@ const ServeCube = {
 			}
 			return output;
 		};
-		const dirs = [...Object.values(options.subdomains)];
+		let dirs = [...Object.values(options.subdomains)];
 		if(options.errorDir) {
 			dirs.push(`${options.errorDir}/`);
 		}
-		for(const v of dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
+		for(const v of dirs = dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
 			await plant(tree[v] = {
 				children: {}
 			}, v);
@@ -382,6 +384,7 @@ const ServeCube = {
 			if(!rawPath) {
 				throw new ServeCubeError(`The file \`${path}\` is not planted.`);
 			}
+			const fullPath = options.basePath + rawPath;
 			if(func) {
 				if(context) {
 					context = {
@@ -424,11 +427,13 @@ const ServeCube = {
 						}
 						resolve(returnedContext);
 					};
-					func.call(context);
+					func.call(context).catch(err => {
+						throw new ServeCubeError(`An error occured while executing \`${fullPath}\`.\n${err.stack}`);
+					});
 				});
 			} else {
 				return {
-					value: await fs.readFile(options.basePath + rawPath)
+					value: await fs.readFile(fullPath)
 				};
 			}
 		};
@@ -578,42 +583,51 @@ const ServeCube = {
 								contents = contents.join("");
 							} else if(htmlExtTest.test(i)) {
 								contents = String(contents).replace(brs, "").replace(whitespace, " ");
-							} else if(i.startsWith(`${req.dir}/`)) {// TODO
-								const type = mime.getType(i);
-								if(type === "application/javascript") {
-									const filename = i.slice(i.lastIndexOf("/")+1);
-									const compiled = babel.transform(String(contents), {
-										ast: false,
-										comments: false,
-										compact: true,
-										filename,
-										minified: true,
-										presets: ["env"],
-										sourceMaps: true
-									});
-									const result = UglifyJS.minify(compiled.code, {
-										parse: {
-											html5_comments: false
-										},
-										compress: {
-											passes: 2
-										},
-										sourceMap: {
-											content: JSON.stringify(compiled.map),
-											filename
-										}
-									});
-									contents = result.code;
-									await fs.writeFile(`${fullPath}.map`, result.map);
-								} else if(type === "text/css") {
-									const output = new CleanCSS({
-										inline: false,
-										sourceMap: true
-									}).minify(String(contents));
-									contents = output.styles;
-									const sourceMap = JSON.parse(output.sourceMap);
-									sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
-									await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
+							} else {
+								let publicDir = false;
+								for(const v of Object.values(dirs)) {
+									if(i.startsWith(v)) {
+										publicDir = true;
+										break;
+									}
+								}
+								if(publicDir) {
+									const type = mime.getType(i);
+									if(type === "application/javascript") {
+										const filename = i.slice(i.lastIndexOf("/")+1);
+										const compiled = babel.transform(String(contents), {
+											ast: false,
+											comments: false,
+											compact: true,
+											filename,
+											minified: true,
+											presets: ["env"],
+											sourceMaps: true
+										});
+										const result = UglifyJS.minify(compiled.code, {
+											parse: {
+												html5_comments: false
+											},
+											compress: {
+												passes: 2
+											},
+											sourceMap: {
+												content: JSON.stringify(compiled.map),
+												filename
+											}
+										});
+										contents = result.code;
+										await fs.writeFile(`${fullPath}.map`, result.map);
+									} else if(type === "text/css") {
+										const output = new CleanCSS({
+											inline: false,
+											sourceMap: true
+										}).minify(String(contents));
+										contents = output.styles;
+										const sourceMap = JSON.parse(output.sourceMap);
+										sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
+										await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
+									}
 								}
 							}
 							await fs.writeFile(fullPath, contents);
@@ -632,7 +646,11 @@ const ServeCube = {
 				} else {
 					renderError(403, req, res);
 				}
+				return;
 			} else if(subdomain.endsWith(".")) {
+				if(redirect === false) {
+					redirect = `${req.protocol}://`;
+				}
 				if(subdomain !== ".") {
 					redirect += subdomain;
 				}
@@ -660,6 +678,7 @@ const ServeCube = {
 			}
 			if(redirect !== false) {
 				res.redirect(redirect);
+				return;
 			} else {
 				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
 				let allowedMethods = methods ? Object.keys(methods).join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
