@@ -273,7 +273,8 @@ const ServeCube = {
 				}
 			}
 			if(!paths.length) {
-				throw new ServeCubeError("A file must be limbed before it can be replanted.");
+				limb(rawPath);
+				return replant(rawPath);
 			}
 			const fullPath = options.basePath + rawPath;
 			if(!await fs.exists(fullPath)) {
