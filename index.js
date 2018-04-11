@@ -154,6 +154,84 @@ const ServeCube = {
 			}
 			return output;
 		};
+		const getRawPath = cube.getRawPath = async (path, method) => {
+			method = method ? method.toUpperCase() : "GET";
+			const {dir, paths} = getPaths(path);
+			const output = {
+				rawPath: dir
+			};
+			let parent = tree[dir];
+			while(paths.length) {
+				let child;
+				if(paths[0] === "") {
+					if(parent.index) {
+						child = parent.index;
+					} else {
+						output.rawPath = undefined;
+						break;
+					}
+				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
+					child = paths[0];
+				} else {
+					for(const i of Object.keys(parent.children)) {
+						if(parent.children[i].test) {
+							let matches = paths[0].match(parent.children[i].test);
+							if(matches) {
+								child = i;
+								if(!output.params) {
+									output.params = {};
+								}
+								for(let j = 0; j < parent.children[i].params.length; j++) {
+									output.params[parent.children[i].params[j]] = matches[j+1];
+								}
+								break;
+							}
+						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "")) {
+							child = i;
+							break;
+						}
+					}
+				}
+				if(child) {
+					if(paths.length === 1) {
+						if(parent.children[child].methods) {
+							output.methods = parent.children[child].methods;
+							if(parent.children[child].methods[method]) {
+								output.rawPath += `/${child}`;
+								child = (parent = parent.children[child]).methods[method];
+							} else {
+								output.methodNotAllowed = true;
+								output.rawPath = undefined;
+								break;
+							}
+						}
+						output.rawPath += `/${child}`;
+						output.hasIndex = !!parent.children[child].index;
+						output.func = parent.children[child].func;
+						break;
+					} else if(!parent.children[child].children) {
+						output.rawPath += `/${child}`;
+						break;
+					}
+					output.rawPath += `/${child}`;
+					parent = parent.children[child];
+					paths.shift();
+				} else {
+					output.rawPath = undefined;
+					break;
+				}
+			}
+			if(paths.length !== 1) {
+				output.rawPath = undefined;
+			}
+			if(output.rawPath) {
+				const fullPath = options.basePath + output.rawPath;
+				if(!await fs.exists(fullPath) || (await fs.stat(fullPath)).isDirectory()) {
+					output.rawPath = undefined;
+				}
+			}
+			return output;
+		};
 		const tree = cube.tree = {};
 		const plantChild = async (parent, child, isDir, fullPath) => {
 			parent.children[child] = {};
@@ -288,84 +366,6 @@ const ServeCube = {
 				parent = parent.children[child];
 			}
 			await plantChild(parent, paths[0], false, fullPath);
-		};
-		const getRawPath = cube.getRawPath = async (path, method) => {
-			method = method ? method.toUpperCase() : "GET";
-			const {dir, paths} = getPaths(path);
-			const output = {
-				rawPath: dir
-			};
-			let parent = tree[dir];
-			while(paths.length) {
-				let child;
-				if(paths[0] === "") {
-					if(parent.index) {
-						child = parent.index;
-					} else {
-						output.rawPath = undefined;
-						break;
-					}
-				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
-					child = paths[0];
-				} else {
-					for(const i of Object.keys(parent.children)) {
-						if(parent.children[i].test) {
-							let matches = paths[0].match(parent.children[i].test);
-							if(matches) {
-								child = i;
-								if(!output.params) {
-									output.params = {};
-								}
-								for(let j = 0; j < parent.children[i].params.length; j++) {
-									output.params[parent.children[i].params[j]] = matches[j+1];
-								}
-								break;
-							}
-						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "")) {
-							child = i;
-							break;
-						}
-					}
-				}
-				if(child) {
-					if(paths.length === 1) {
-						if(parent.children[child].methods) {
-							output.methods = parent.children[child].methods;
-							if(parent.children[child].methods[method]) {
-								output.rawPath += `/${child}`;
-								child = (parent = parent.children[child]).methods[method];
-							} else {
-								output.methodNotAllowed = true;
-								output.rawPath = undefined;
-								break;
-							}
-						}
-						output.rawPath += `/${child}`;
-						output.hasIndex = !!parent.children[child].index;
-						output.func = parent.children[child].func;
-						break;
-					} else if(!parent.children[child].children) {
-						output.rawPath += `/${child}`;
-						break;
-					}
-					output.rawPath += `/${child}`;
-					parent = parent.children[child];
-					paths.shift();
-				} else {
-					output.rawPath = undefined;
-					break;
-				}
-			}
-			if(paths.length !== 1) {
-				output.rawPath = undefined;
-			}
-			if(output.rawPath) {
-				const fullPath = options.basePath + output.rawPath;
-				if(!await fs.exists(fullPath) || (await fs.stat(fullPath)).isDirectory()) {
-					output.rawPath = undefined;
-				}
-			}
-			return output;
 		};
 		let dirs = [...Object.values(options.subdomains)];
 		if(options.errorDir) {
