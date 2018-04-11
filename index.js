@@ -199,7 +199,7 @@ const ServeCube = {
 				if(child) {
 					if(paths.length === 1) {
 						if(parent.children[child].methods) {
-							output.methods = parent.children[child].methods;
+							output.methods = Object.keys(parent.children[child].methods);
 							if(parent.children[child].methods[method]) {
 								output.rawPath += `/${child}`;
 								child = (parent = parent.children[child]).methods[method];
@@ -679,7 +679,7 @@ const ServeCube = {
 				return;
 			} else {
 				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
-				let allowedMethods = methods ? Object.keys(methods).join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
+				let allowedMethods = methods ? methods.join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
 				if(allowedMethods) {
 					allowedMethods = `OPTIONS, ${allowedMethods}`;
 					res.set("Allow", allowedMethods);
