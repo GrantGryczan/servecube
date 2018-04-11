@@ -307,6 +307,15 @@ const ServeCube = {
 					throw new ServeCubeError(`The file \`${parents.map(byFirstItems).join("/")}/${child}\` is not planted.`);
 				}
 			}
+			if(parents[0][1].children) {
+				const dirPath = `${rawPath}/`;
+				for(const i of Object.keys(loadCache)) {
+					if(i.startsWith(dirPath)) {
+						delete loadCache[i];
+					}
+				}
+			}
+			delete loadCache[rawPath];
 			while(parents.length) {
 				const child = parents.shift()[0];
 				if(parents[0][1].index === child) {
@@ -400,9 +409,9 @@ const ServeCube = {
 				});
 				context.value = "";
 				let cacheIndex;
-				return loadCache[context.rawPath] && loadCache[cacheIndex = `:${loadCache[context.rawPath](context)}`] ? {
+				return loadCache[context.rawPath] && loadCache[context.rawPath][cacheIndex = `#${loadCache[context.rawPath].vary(context)}`] ? {
 					...context,
-					...loadCache[cacheIndex]
+					...loadCache[context.rawPath][cacheIndex]
 				} : await new Promise((resolve, reject) => {
 					context.done = () => {
 						const returnedContext = {
@@ -418,9 +427,11 @@ const ServeCube = {
 							delete returnedContext.cache;
 							if(context.cache instanceof Function) {
 								if(!loadCache[context.rawPath]) {
-									loadCache[context.rawPath] = context.cache;
+									loadCache[context.rawPath] = {
+										vary: context.cache
+									};
 								}
-								loadCache[`:${context.cache(context)}`] = returnedContext;
+								loadCache[context.rawPath][`#${context.cache(context)}`] = returnedContext;
 							}
 						}
 						resolve(returnedContext);
@@ -437,13 +448,16 @@ const ServeCube = {
 		};
 		const renderLoad = async (path, req, res, status) => {
 			res.set("Content-Type", "text/html");
-			const result = await load(path, {
+			const context = {
 				req,
 				res,
-				status,
 				method: req.method,
 				headers: {}
-			});
+			};
+			if(status) {
+				context.status = status;
+			}
+			const result = await load(path, context);
 			if(result.headers) {
 				for(const i of Object.keys(result.headers)) {
 					if(result.headers[i]) {
