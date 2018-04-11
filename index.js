@@ -144,6 +144,7 @@ const ServeCube = {
 		if(!options.domain.includes(".")) {
 			app.set("subdomain offset", 1);
 		}
+		const tree = cube.tree = {};
 		const getPaths = (path, paramName) => {
 			if(typeof path !== "string") {
 				throw new ServeCubeError(`The \`${paramName || "path"}\` parameter must be a string.`);
@@ -151,6 +152,9 @@ const ServeCube = {
 			const output = {};
 			if(!(output.dir = (output.paths = path.split("/")).shift())) {
 				throw new ServeCubeError("The specified path contains no base directory.");
+			}
+			if(!tree[output.dir]) {
+				throw new ServeCubeError(`The specified base directory, \`${output.dir}\`, is not planted.`);
 			}
 			return output;
 		};
@@ -232,7 +236,6 @@ const ServeCube = {
 			}
 			return output;
 		};
-		const tree = cube.tree = {};
 		const plantChild = async (parent, child, isDir, fullPath) => {
 			parent.children[child] = {};
 			if(!isDir && pageExtTest.test(child)) {
@@ -295,9 +298,6 @@ const ServeCube = {
 		const limb = cube.limb = rawPath => {
 			const {dir, paths} = getPaths(rawPath, "rawPath");
 			let parent = tree[dir];
-			if(!parent) {
-				throw new ServeCubeError(`The specified base directory, \`${dir}\`, is not planted.`);
-			}
 			const parents = [[dir, parent]];
 			while(paths.length) {
 				const child = paths.shift();
@@ -331,9 +331,6 @@ const ServeCube = {
 		const replant = cube.replant = async rawPath => {
 			const {dir, paths} = getPaths(rawPath, "rawPath");
 			let parent = tree[dir];
-			if(!parent) {
-				throw new ServeCubeError(`The specified base directory, \`${dir}\`, is not planted.`);
-			}
 			while(paths.length) {
 				if(parent) {
 					if(parent.children) {
