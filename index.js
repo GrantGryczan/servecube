@@ -250,8 +250,8 @@ const ServeCube = {
 				}
 			}
 		};
-		const replant = cube.replant = async path => {
-			const {dir, paths} = getPaths(path);
+		const replant = cube.replant = async rawPath => {
+			const {dir, paths} = getPaths(rawPath, "rawPath");
 			let parent = tree[dir];
 			if(!parent) {
 				throw new ServeCubeError(`The specified base directory, \`${dir}\`, is not planted.`);
@@ -266,7 +266,7 @@ const ServeCube = {
 							break;
 						}
 					} else {
-						throw new ServeCubeError(`The file \`${path.split("/").slice(0, -paths.length).join("/")}\` has no children as it is not a directory.`);
+						throw new ServeCubeError(`The file \`${rawPath.split("/").slice(0, -paths.length).join("/")}\` has no children as it is not a directory.`);
 					}
 				} else {
 					break;
@@ -275,7 +275,7 @@ const ServeCube = {
 			if(!paths.length) {
 				throw new ServeCubeError("A file must be limbed before it can be replanted.");
 			}
-			const fullPath = options.basePath + path;
+			const fullPath = options.basePath + rawPath;
 			if(!await fs.exists(fullPath)) {
 				throw new ServeCubeError(`The file \`${fullPath}\` was not found.`);
 			} else if((await fs.stat(fullPath)).isDirectory()) {
