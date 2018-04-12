@@ -159,7 +159,7 @@ const ServeCube = {
 			return output;
 		};
 		const getRawPath = cube.getRawPath = async (path, method) => {
-			method = method ? method.toUpperCase() : "GET";
+			method = typeof method === "string" ? method.toUpperCase() : "GET";
 			const {dir, paths} = getPaths(path);
 			const output = {
 				rawPath: dir
