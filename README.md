@@ -27,7 +27,7 @@ const {serve, html} = require("servecube");
 ### async serve(options)
 Initiate your cube web server.
 * `options`: (Object) The cube's options.
-  * `eval`: (Function) This should always be set to `v => eval(v)` so ServeCube is able to evaluate your NJS files under the correct scope.
+  * `eval(string)`: (Function) This should always be set to `v => eval(v)` so ServeCube is able to evaluate your NJS files under the correct scope.
     * Optional but recommended
     * Default: `eval`
     * Example: `v => eval(v)`
@@ -79,8 +79,41 @@ Initiate your cube web server.
     * Optional
     * Example: `[require("cookie-parser")()]`
 * Resolves: (Object) A cube web server.
-  * Soon...
-* Rejects: (ServeCubeError) An error that occured while initiating the cube.
+  * `app`: (Object) The [`express` app](https://expressjs.com/en/api.html#app).
+  * `tree`: (Object) A cache of the planted directory tree. Only use this if you know what you're doing.
+  * `async getRawPath(path, method)`: Get a planted file's metadata based on its public path.
+    * `path`: (String) The input path. It should start with a base directory, followed by a URL-friendly resource path (which starts with a slash). This value should already be URI-decoded.
+      * Required
+      * Examples: `"www/"`, `"www/test/page/"`, `"error/404"`, `"api/users/CoolGuy43/profile"`, `"www/images/Nice logo.png"`
+    * `method`: (String) The HTTP method to use in finding the requested path if applicable.
+      * Optional
+      * Default: `"GET"`
+      * Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
+    * Resolves: (Object) The output file metadata.
+      * `rawPath`: (?String) The relative path to the file, or `undefined` if the requested file is not planted.
+        * Examples: `"www/index.html"`, `"www/test/page/index.NJS"`, `"error/404.njs"`, `"api/users/{username}/profile/GET.njs"`, `"www/images/Nice logo.png"`
+      * `params`: (?Object) All of the requested path template parameters. Keys are parameter names, and values are what the keys were substituted with in the path string. This property is unset if there are no parameters.
+        * More information soon...
+      * `methods`: (?Array) All of the allowed HTTP methods you can request the file with through the path's method files. This property is unset if no planted method files exist for the requested path.
+        * Examples: `["POST", "PUT", "PATCH"]`, `["GET"]`
+      * `methodNotAllowed`: (?Boolean) `true` if method files exist but there is no planted file for the requested method, unset if not.
+      * `hasIndex`: (?Boolean) Whether the requested directory has an index. This is unset if the planted file is not a directory.
+      * `async func()`: (?Function) The function to call to execute the planted file, or `undefined` if the file is not an NJS file. Only use this if you know what you're doing.
+  * `limb(rawPath)`: (Function) Remove a file from the tree cache. This method will not delete the file on the file system.
+    * `rawPath`: (String) The relative path to the file.
+      * Required
+      * Examples: Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.
+  * `async replant(rawPath)`: (Function) Refresh a planted file in the tree cache. The file will be automatically limbed, if it is not already, before it is replanted. This method will read from the file system.
+    * `rawPath`: Same as in `cube.limb`.
+  * `async load(path, context)`: (Function) Load and execute a planted file.
+    * `path`: (String) Any `cube.getRawPath`-compatible `path` parameter.
+      * Required
+    * `context`: (Object) The context of the file, if it is an NJS file. This is what `this` will be set to from inside the file's execution. It is recommended that, whenever you use this method from within an NJS file, you set this property to `this` or an object that spreads `this`.
+      * Optional
+      * Default: `{}`
+      * Examples: `this`, `{...this, method: "POST"}`, `{status: 404}`, `{test: true, magic: "real"}`
+      * More information soon...
+  * `loadCache`: (Object) All of the cached request contexts for caching the `cube.load` method. Only use this if you know what you're doing.
 
 More documentation to come!
 
