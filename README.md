@@ -79,7 +79,7 @@ Initiate your cube web server.
     * Optional
     * Example: `[require("cookie-parser")()]`
 * Resolves: (Object) A cube web server.
-  * `app`: (Object) The [`express` app](https://expressjs.com/en/api.html#app).
+  * `app`: (Object) The `express` app. A reference can be found [here](https://expressjs.com/en/api.html#app).
   * `tree`: (Object) A cache of the planted directory tree. Only use this if you know what you're doing.
   * `async getRawPath(path, method)`: Get a planted file's metadata based on its public path.
     * `path`: (String) The input path. It should start with a base directory, followed by a URL-friendly resource path (which starts with a slash). This value should already be URI-decoded.
