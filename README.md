@@ -6,7 +6,7 @@ npm install servecube --save
 **Node 9.11.1+** is required.
 
 ## Features
-* This framework wraps [`express`](https://github.com/expressjs/express) and has its features built in and accessible.
+* This framework wraps [`express`](https://github.com/expressjs/express) and has many of its features built in and accessible.
 * You can optionally connect your server to a GitHub webhook so that source code is automatically uploaded to the server.
 * With GitHub connection comes automatic HTML, JS, and CSS minification, and Babel JS compilation.
 * The framework is very modular so that each page or endpoint (and HTTP method, optionally) can be its own file.
