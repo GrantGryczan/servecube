@@ -398,9 +398,13 @@ const ServeCube = {
 					context = {
 						...context
 					};
+					// Delete properties which may not be passed into loaded context.
 					delete context.done;
-					delete context.cache;
 					delete context.value;
+					delete context.status;
+					delete context.redirect;
+					delete context.headers;
+					delete context.cache;
 				} else {
 					context = {};
 				}
@@ -418,12 +422,13 @@ const ServeCube = {
 						const returnedContext = {
 							...context
 						};
-						delete returnedContext.done;
+						// Delete properties which are not included in resolved context.
 						delete returnedContext.rawPath;
-						delete returnedContext.params;
+						delete returnedContext.done;
 						delete returnedContext.req;
 						delete returnedContext.res;
 						delete returnedContext.method;
+						delete returnedContext.params;
 						if(context.cache) {
 							delete returnedContext.cache;
 							if(context.cache instanceof Function) {
@@ -447,7 +452,7 @@ const ServeCube = {
 				};
 			}
 		};
-		const renderLoad = async (path, req, res, status) => {
+		const renderLoad = async (path, req, res) => {
 			res.set("Content-Type", "text/html");
 			const context = {
 				req,
@@ -455,9 +460,6 @@ const ServeCube = {
 				method: req.method,
 				headers: {}
 			};
-			if(status) {
-				context.status = status;
-			}
 			const result = await load(path, context);
 			if(result.headers) {
 				for(const i of Object.keys(result.headers)) {
@@ -486,7 +488,7 @@ const ServeCube = {
 				const path = `${options.errorDir}/${stringStatus}`;
 				const {rawPath} = await getRawPath(path, req.method);
 				if(rawPath) {
-					renderLoad(path, req, res, status);
+					renderLoad(path, req, res);
 				} else {
 					res.send(stringStatus);
 				}
