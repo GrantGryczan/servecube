@@ -512,8 +512,6 @@ const ServeCube = {
 			let redirect = false;
 			if(options.httpsRedirect && req.protocol === "http") {
 				redirect = "https://";
-			} else if(redirect !== false) {
-				redirect = `${req.protocol}://`;
 			}
 			try {
 				req.decodedURL = decodeURIComponent(req.url);
@@ -704,8 +702,9 @@ const ServeCube = {
 						res.set("Access-Control-Allow-Methods", allowedMethods);
 					}
 				}
+				req.rawPath = rawPath;
 				if(req.method === "OPTIONS") {
-					res.send();
+					res.next();
 					return;
 				}
 				if(!rawPath) {
@@ -717,7 +716,6 @@ const ServeCube = {
 						return;
 					}
 				}
-				req.rawPath = rawPath;
 				req.next();
 			}
 		});
@@ -729,6 +727,10 @@ const ServeCube = {
 			}
 		}
 		app.all("*", async (req, res) => {
+			if(req.method === "OPTIONS") {
+				res.send();
+				return;
+			}
 			if(req.rawPath) {
 				if(njsExtTest.test(req.rawPath)) {
 					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
