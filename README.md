@@ -154,8 +154,7 @@ const {serve, html} = require("servecube");
   * Resolves: (Object) The output file metadata.
     * `rawPath`: (?String) The relative path to the file, or `undefined` if the requested file is not planted.
       * Examples: `"www/index.html"`, `"www/test/page/index.NJS"`, `"error/404.njs"`, `"api/users/{username}/profile/GET.njs"`, `"www/images/Nice logo.png"`
-    * `params`: (?Object) All of the requested path template parameters. Object keys are parameter names, and object values are what the keys were substituted with in the path string. This property is unset if there are no parameters.
-      * More information soon...
+    * `params`: (?Object) All of the requested path template parameters. Object keys are parameter names, and object values are what the keys were substituted with in the path string. This property is unset if there are no parameters. More information on URL templating can be found [here](#njs-files), under the `params` property of context objects.
     * `methods`: (?Array) All of the allowed HTTP methods you can request the file with through the path's method files. This property is unset if no planted method files exist for the requested path.
       * Examples: `["POST", "PUT", "PATCH"]`, `["GET"]`
     * `methodNotAllowed`: (?Boolean) `true` if method files exist but there is no planted file for the requested method, unset if not.
