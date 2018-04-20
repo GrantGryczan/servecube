@@ -5,14 +5,14 @@
 	"main": "index.js",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/GrantGryczan/servecube.git"
+		"url": "git+https://github.com/GrantGryczan/ServeCube.git"
 	},
 	"author": "Grant Gryczan",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/GrantGryczan/servecube/issues"
+		"url": "https://github.com/GrantGryczan/ServeCube/issues"
 	},
-	"homepage": "https://github.com/GrantGryczan/servecube#readme",
+	"homepage": "https://github.com/GrantGryczan/ServeCube#readme",
 	"dependencies": {
 		"babel-core": "^6.26.0",
 		"babel-preset-env": "^1.6.1",
