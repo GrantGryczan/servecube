@@ -176,8 +176,38 @@ const {serve, html} = require("servecube");
   * Resolves: (Object) A context object after having been used in the loaded script.
 * `loadCache`: (Object) All of the cached request contexts for caching the `cube.load` method. Only use this if you know what you're doing.
 
+## Middleware
+ServeCube wraps `express`, and uses custom middleware that does a few convenient things.
+
+* It sets the [`X-Frame-Options` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) to `"SAMEORIGIN"`, to block `iframe`s of your website from being loaded on other websites, preventing most clickjacking.
+* It sets the [`Vary` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary) to "`Origin`", so that CORS headers are not cached by the client across different websites.
+* It sets the [`Access-Control-Allow-Origin` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin) to your website's origin, so that HTTP requests to your web server may only be made from your own website.
+* It redirects to HTTPS if the option is available and not disabled.
+* It redirects to the correct subdomain if applicable.
+* It removes duplicate slashes from the URL if there are any.
+* It removes the page file extension from the URL (like ".njs" or ".html") if the requested file is a page file and its extension is present.
+* It removes the filename from the URL if it is an index file.
+* It adds or removes a leading slash from the URL, depending on whether the request is of an index file, if it is not already added or removed.
+* It sets the [`Allow` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Allow) and the [`Access-Control-Allow-Methods` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods) correctly.
+* It also sets all of these properties on the `express` request object. (A reference of the `express`-defined properties can be found [here](https://expressjs.com/en/api.html#req).)
+  * `body`: (?Buffer) The request body, parsed by [`bodyParser.raw`](https://github.com/expressjs/body-parser#bodyparserrawoptions). The `bodyParser` middleware is not customizable as it needs to be raw to be able to parse GitHub webhooks. If you want the body to be under a specific format, you can parse the buffer into something else.
+  * `subdomain`: (String) The subdomain defined in the URL, but concatenated into one string, periods and all, rather than just an array of period-split values provided by `req.subdomains`. This is an empty string if there is no subdomain in the URL.
+    * Examples: `""`, `"www"`, `"api"`, `"some.sub.domain"`
+  * `decodedURL`: (String) The request's URI-decoded URL. If there is an error while decoding, [HTTP error 400](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400) is thrown.
+    * Example: `"/a URL path/with spaces in it?wow isn't it cool"`
+  * `dir`: (String) The subdomain directory of the requested file.
+    * Examples: `"www"`, `"api"`
+  * `queryString`: (?String) Everything after the question mark in the decoded URL, or `undefined` if there is no question mark.
+    * Examples: `"v=7wiNUBaK-6M"`, `"magic=real&test=true"`, `"q=awesome&safe=active&ssui=on"`, `"wow isn't it cool`"
+  * `decodedPath`: (String) The decoded URL without the query string and without the question mark.
+    * Example: `"/a URL path/with spaces in it"`
+  * `rawPath`: (String) The raw path to the planted file that was requested.
+    * Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
+
+ServeCube's middleware runs before any of the middleware you define in [`options.middleware`](#async-serveoptions).
+
 ## NJS Files
-It is recommended that you read [the section on file structure](#file-structure) before reading this section.
+It is recommended that you read the section on [file structure](#file-structure) before reading this section.
 
 NJS files are in the same JavaScript syntax as JS files, but the difference in file extension is necessary for ServeCube to be able to differentiate between whether these files should be parsed on the client browser (JS) or on the Node server (NJS).
 
@@ -191,7 +221,7 @@ Context objects use the following properties.
   * Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
 * `done()`: (Function) The method to call when your script is ready to send an HTTP response or resolve a ServeCube load. This method should always be called once, no more and no less, from any NJS file.
   * Presence: This property **is always predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
-* `req`: (Object) The ServeCube request object. A reference can be found [here](#), soon...
+* `req`: (Object) The ServeCube request object. This is just the `express` request object, but with a few extra properties defined by ServeCube's middleware. A reference can be found [here](#middleware).
   * Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not included** in resolved context.
 * `res`: (Object) The `express` response object. A reference can be found [here](https://expressjs.com/en/api.html#res).
   * Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not included** in resolved context.
@@ -219,7 +249,7 @@ Context objects use the following properties.
   * Required
   * Default: `""`
   * Examples: `"Hello, world!"`, `{cool: true}`, `Buffer.from("whatever")`
-* `cache(context)`: (Function) A function used for server-side load caching. If defined, the script's resolved context is cached by ServeCube (under `cube.loadCache`) and used whenever the file is loaded, whether by HTTP request or not. This function is called whenever it is necessary for ServeCube to retrieve or store such a cached context, as cached contexts are identified by the string returned from this function, known as a cache index. This function is similar in nature to [the HTTP `Vary` response header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary), but data is cached on the server rather than the client, and cache identification may vary based on more than just HTTP headers. Cache indexing is per NJS file.
+* `cache(context)`: (Function) A function used for server-side load caching. If defined, the script's resolved context is cached by ServeCube (under `cube.loadCache`) and used whenever the file is loaded, whether by HTTP request or not. This function is called whenever it is necessary for ServeCube to retrieve or store such a cached context, as cached contexts are identified by the string returned from this function, known as a cache index. This function is similar in nature to the [HTTP `Vary` response header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary), but data is cached on the server rather than the client, and cache identification may vary based on more than just HTTP headers. Cache indexing is per NJS file.
   * Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
   * Optional
   * `context`: (Object) The predefined context object.
