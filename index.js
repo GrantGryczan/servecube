@@ -501,12 +501,11 @@ const ServeCube = {
 			type: "*/*"
 		}));
 		app.use(async (req, res) => {
-			res.set("X-Magic", "real");
+			// TODO: `X-Powered-By` header
 			res.set("X-Frame-Options", "SAMEORIGIN");
 			res.set("Vary", "Origin");
 			const origin = req.get("Origin");
 			if(origin && originTest.test(origin)) {
-				res.set("Access-Control-Expose-Headers", "X-Magic");
 				res.set("Access-Control-Allow-Origin", origin);
 			}
 			let redirect = false;
