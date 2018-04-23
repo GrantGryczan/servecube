@@ -3,7 +3,7 @@ ServeCube is a modular Node web framework optimized for websites and RESTful web
 ```
 npm install servecube --save
 ```
-**Node 9.11.1+** is required.
+**Node 8.6.0+** is required.
 
 This documentation assumes you already have a fair understanding of JavaScript, Node, and how the web works.
 
