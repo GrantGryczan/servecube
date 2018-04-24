@@ -231,7 +231,9 @@ const ServeCube = {
 			}
 			if(output.rawPath) {
 				const fullPath = options.basePath + output.rawPath;
-				if(!await fs.exists(fullPath) || (await fs.stat(fullPath)).isDirectory()) {
+				if(!await fs.exists(fullPath)) {
+					throw new ServeCubeError(`The file \`${fullPath}\` is planted but was not found.`);
+				} else if((await fs.stat(fullPath)).isDirectory()) {
 					output.rawPath = undefined;
 				}
 			}
