@@ -21,7 +21,7 @@ This documentation assumes you already have a fair understanding of JavaScript, 
 If any updates that might affect your current ServeCube implementation are applied, the second digit in the version number is raised. Thus, if you are to update the ServeCube module in your package, you should check the docs for relevant updates if it is the second digit that increased. If the third digit increases, it is only a bug fix or small update that will not typically deem your code dysfunctional.
 
 ## Terminology
-* The ServeCube **tree** is a cache of much of your working directory's file structure.
+* The ServeCube **tree** is a cache of much of your working directory's file structure. This tree does not persist between Node processes.
 * A **planted** file is a file cached under the tree. These files have potential to be served to users visiting your website.
 * To **limb** a file is to remove it from the tree and clear all cached instances of it by ServeCube.
 * To **replant** a file is to load a file to the tree again.
@@ -263,4 +263,5 @@ Context objects use the following properties.
 Any properties not on the above list **are passed** into loaded context and **are included** in resolved context.
 
 ## Important Notes
+* You should never manually edit or remove planted files or directories while ServeCube is running, as they will not be automatically replanted or limbed. The same applies to planting newly created files. ServeCube will only automatically replant and limb when it receives GitHub webhooks. For now, if you aren't using GitHub integration to do things or are using the file system directly, you need to restart ServeCube to limb removed files and replant edited or new files, or limb and replant them programmatically. If you're just editing the contents of non-NJS files, this does not apply, as only NJS files have their contents cached, and non-NJS files have their contents served directly from the file system.
 * Due to the limitations of the GitHub API, files you push can only be automatically uploaded to your server if they are 10 MB or less. If you want to upload a file that is greater than 10 MB, you will have to do it manually by alternative means. If you push a file larger than 10 MB, a warning will appear in the Node console.
