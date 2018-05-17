@@ -10,7 +10,7 @@ This documentation assumes you already have a fair understanding of JavaScript, 
 ## Features
 * This framework wraps [`express`](https://github.com/expressjs/express) and has many of its features built in and accessible.
 * You can optionally connect your server to a GitHub webhook so that source code is automatically uploaded to the server.
-* With GitHub connection comes automatic HTML, JS, and CSS minification, and Babel JS compilation.
+* With GitHub connection comes automatic minification for HTML, JS, and CSS, and automatic compilation with Sass SCSS and Babel JS.
 * The framework is very modular so that each page or endpoint (and HTTP method, optionally) can be its own file.
 * Any file type can be served to the client, and the Node JS file type (NJS) is used for server-side JavaScript evaluation.
 * With JavaScript evaluation comes document templating (and everything else you can do with JavaScript, duh).
@@ -264,4 +264,5 @@ Any properties not on the above list **are passed** into loaded context and **ar
 
 ## Important Notes
 * You should never manually edit or remove planted files or directories while ServeCube is running, as they will not be automatically replanted or limbed. The same applies to planting newly created files. ServeCube will only automatically replant and limb when it receives GitHub webhooks. For now, if you aren't using GitHub integration to do things or are using the file system directly, you need to restart ServeCube to limb and replant files, or you can limb and replant them programmatically. If you're just editing the contents of non-NJS files, this does not apply, as only NJS files have their contents cached, and non-NJS files have their contents served directly from the file system.
+* Compiled and/or minified files are not renamed after being processed. For example, if you have `test.css` pushed to your repository, it can contain uncompressed SCSS code which will be compiled and minified into `test.css`, the same filename, on the server.
 * Due to the limitations of the GitHub API, files you push can only be automatically uploaded to your server if they are 10 MB or less. If you want to upload a file that is greater than 10 MB, you will have to do it manually by alternative means. If you push a file larger than 10 MB, a warning will appear in the Node console.
