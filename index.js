@@ -507,6 +507,7 @@ const ServeCube = {
 			limit: "100mb",
 			type: "*/*"
 		}));
+		app.disable("X-Powered-By");
 		app.use(async (req, res) => {
 			res.set("X-Powered-By", "ServeCube");
 			res.set("X-Frame-Options", "SAMEORIGIN");
