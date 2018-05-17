@@ -14,19 +14,19 @@
 	},
 	"homepage": "https://github.com/GrantGryczan/ServeCube#readme",
 	"dependencies": {
-		"babel-core": "^6.26.0",
-		"babel-preset-env": "^1.6.1",
-		"body-parser": "^1.18.2",
+		"babel-core": "^6.26.3",
+		"babel-preset-env": "^1.7.0",
+		"body-parser": "^1.18.3",
 		"clean-css": "^4.1.11",
 		"express": "^4.16.3",
 		"express-session": "^1.15.6",
 		"fs-extra": "^5.0.0",
-		"mime": "^2.2.2",
+		"mime": "^2.3.1",
 		"node-sass": "^4.9.0",
-		"path-to-regexp": "^2.2.0",
-		"request": "^2.85.0",
+		"path-to-regexp": "^2.2.1",
+		"request": "^2.86.0",
 		"request-promise-native": "^1.0.5",
-		"uglify-js": "^3.3.20"
+		"uglify-js": "^3.3.25"
 	},
 	"devDependencies": {}
 }
