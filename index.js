@@ -508,7 +508,7 @@ const ServeCube = {
 			type: "*/*"
 		}));
 		app.use(async (req, res) => {
-			// TODO: `X-Powered-By` header
+			res.set("X-Powered-By", "ServeCube");
 			res.set("X-Frame-Options", "SAMEORIGIN");
 			res.set("Vary", "Origin");
 			const origin = req.get("Origin");
@@ -718,7 +718,7 @@ const ServeCube = {
 				}
 				if(!rawPath) {
 					if(hasIndex) {
-						res.redirect(req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`); // TODO: the opposite
+						res.redirect(req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`);
 						return;
 					} else if(methodNotAllowed) {
 						renderError(405, req, res);
