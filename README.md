@@ -37,10 +37,10 @@ Under your working directory, it is ideal that you have at least these two direc
 Only the contents of NJS files are cached under the planted file's metadata by ServeCube, so that JavaScript evaluation is faster. All other file types, including HTML, are piped directly from the file system to the response when requested.
 
 For every planted directory, the following information is true.
-* They can contain one index file, which is served when a user requests the directory's path as a directory (favorably _with_ an ending slash).
+* They can contain one index file, which is served when a user requests the directory's path as a directory (_with_ an ending slash).
   * Index files are named "index", case-insensitive.
   * They must be page files.
-* They can contain method files, which are served when a user requests the directory's path as a file (favorably _without_ an ending slash).
+* They can contain method files, which are served when a user requests the directory's path as a file (_without_ an ending slash).
   * Method files are named by the HTTP method (like "GET"), and must be fully capitalized.
   * They must be page files.
   * One method file can handle multiple methods by separating method names with commas (and an optional space after each comma), like "PUT,PATCH" or "PUT, PATCH".
@@ -187,7 +187,7 @@ ServeCube wraps `express`, and uses custom middleware that does a few convenient
 * It removes duplicate slashes from the URL if there are any.
 * It removes the page file extension from the URL (like ".njs" or ".html") if the requested file is a page file and its extension is present.
 * It removes the filename from the URL if it is an index file.
-* It adds or removes a leading slash from the URL, depending on whether the request is of an index file, if it is not already added or removed.
+* It adds an ending slash to the URL, depending on whether the request is of an index file, if a slash is not already there.
 * It sets the [`Allow` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Allow) and the [`Access-Control-Allow-Methods` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods) correctly.
 * It also sets all of these properties on the `express` request object. (A reference of the `express`-defined properties can be found [here](https://expressjs.com/en/api.html#req).)
   * `body`: (?Buffer) The request body, parsed by [`bodyParser.raw`](https://github.com/expressjs/body-parser#bodyparserrawoptions). The `bodyParser` middleware is not customizable as it needs to be raw to be able to parse GitHub webhooks. If you want the body to be under a specific format, you can parse the buffer into something else.
