@@ -87,56 +87,56 @@ const {serve, html} = require("servecube");
 (Function) Initiate your cube web server.
 * `options`: (Object) The cube's options.
   * `eval(string)`: (Function) This should always be set to `v => eval(v)` so ServeCube is able to evaluate your NJS files under the correct scope.
-    * Optional but recommended
-    * Default: `eval`
-    * Example: `v => eval(v)`
+	* Optional but recommended
+	* Default: `eval`
+	* Example: `v => eval(v)`
   * `domain`: (String) Your website's domain (without any subdomain, and with the port if necessary for URL access).
-    * Required
-    * Examples: `"example.com"`, `"localhost:8080"`, `"miroware.io"`
+	* Required
+	* Examples: `"example.com"`, `"localhost:8080"`, `"miroware.io"`
   * `basePath`: (String) An absolute path to your current working directory, which should contain your `package.json` file. This value is prepended to every relative path you use. This directory's file structure is cached by ServeCube. If you connect GitHub to ServeCube, the repository's base directory is synced to this one.
-    * Optional
-    * Default: `process.cwd()`
-    * Examples: `"/home/web/"`, `"/var/www/"`
+	* Optional
+	* Default: `process.cwd()`
+	* Examples: `"/home/web/"`, `"/var/www/"`
   * `errorDir`: (String) A relative path to your error directory.
-    * Optional
-    * Examples: `"error"`, `"err"`
+	* Optional
+	* Examples: `"error"`, `"err"`
   * `httpPort`: (Number) The port number listened to for HTTP traffic.
-    * Optional
-    * Default: `8080`
-    * Examples: `80`, `3000`, `8888`, `8000`, `8081`
+	* Optional
+	* Default: `8080`
+	* Examples: `80`, `3000`, `8888`, `8000`, `8081`
   * `tls`: (Object) Options for `https.createServer`. A reference can be found [here](https://nodejs.org/api/https.html#https_https_createserver_options_requestlistener). Setting this property enables HTTPS for your cube web server.
-    * Optional
-    * Example: `{key: fs.readFileSync("ssl/privkey.pem"), cert: fs.readFileSync("ssl/cert.pem"), ca: fs.readFileSync("ssl/chain.pem")}`
+	* Optional
+	* Example: `{key: fs.readFileSync("ssl/privkey.pem"), cert: fs.readFileSync("ssl/cert.pem"), ca: fs.readFileSync("ssl/chain.pem")}`
   * `httpsPort`: (Number) The port number listened to for HTTPS traffic.
-    * Optional
-    * Default: `8443`
-    * Examples: `443`, `3443`, `4000`, `8444`
+	* Optional
+	* Default: `8443`
+	* Examples: `443`, `3443`, `4000`, `8444`
   * `httpsRedirect`: (Boolean) Whether to redirect HTTP traffic to HTTPS traffic.
-    * Optional
-    * Default: `true` if `options.tls` is defined, `false` if not
+	* Optional
+	* Default: `true` if `options.tls` is defined, `false` if not
   * `subdomains`: (Object) Your subdomain configuration. Object keys are subdomains. Object values are strings. Values can represent redirection to another subdomain by that subdomain with a trailing period, or they can represent being associated with a particular directory by its relative path with a trailing slash.
-    * Optional
-    * Default: `{"": "www/", "*": "."}` No-subdomain uses the `www` directory and all subdomains redirect to no-subdomain.
-    * `""`: An empty string as a key represents when there is no subdomain in the URL.
-    * `"*"`: An asterisk as a key represents a wildcard subdomain: the fallback property for when no property for a requested subdomain is defined. The default object is completely ignored when this property is defined.
-    * Examples:
-      * `{www: "www/", "*": "www."}` The `www` subdomain uses the `www` directory and all other subdomains redirect to the `www` subdomain. The default values are ignored as a wildcard is defined.
-      * `{"": "public_html/", api: "api/"}` No-subdomain uses the `public_html` directory and the `api` subdomain uses the `api` directory. Due to the default, all other subdomains redirect to no-subdomain.
-      * `{m: "www/", mobile: "m."}` The `m` subdomain uses the `www` directory and the `mobile` subdomain redirects to the `m` subdomain. Due to the default, no-subdomain also uses the `www` directory and all other subdomains redirect to no-subdomain.
+	* Optional
+	* Default: `{"": "www/", "*": "."}` No-subdomain uses the `www` directory and all subdomains redirect to no-subdomain.
+	* `""`: An empty string as a key represents when there is no subdomain in the URL.
+	* `"*"`: An asterisk as a key represents a wildcard subdomain: the fallback property for when no property for a requested subdomain is defined. The default object is completely ignored when this property is defined.
+	* Examples:
+	  * `{www: "www/", "*": "www."}` The `www` subdomain uses the `www` directory and all other subdomains redirect to the `www` subdomain. The default values are ignored as a wildcard is defined.
+	  * `{"": "public_html/", api: "api/"}` No-subdomain uses the `public_html` directory and the `api` subdomain uses the `api` directory. Due to the default, all other subdomains redirect to no-subdomain.
+	  * `{m: "www/", mobile: "m."}` The `m` subdomain uses the `www` directory and the `mobile` subdomain redirects to the `m` subdomain. Due to the default, no-subdomain also uses the `www` directory and all other subdomains redirect to no-subdomain.
   * `githubSecret`: (String) Your GitHub webhook's secret. Setting this property enables GitHub integration.
-    * Optional
+	* Optional
   * `githubSubdomain`: (String) The subdomain to accept GitHub webhook requests on, or an empty string to accept on no-subdomain.
-    * Optional
-    * Default: `""`
-    * Examples: `"api"`, `"github"`, `"www"`
+	* Optional
+	* Default: `""`
+	* Examples: `"api"`, `"github"`, `"www"`
   * `githubPayloadURL`: (String) Your GitHub webhook's payload URL. This is the URL GitHub sends data to when you push data to your repository. A request's decoded URL has to be equal to it for GitHub integration to be triggered.
-    * Required if GitHub integration is enabled
-    * Examples: `"/githubwebhook"`, `"/github"`, `"/push"`, `"/commits"`
+	* Required if GitHub integration is enabled
+	* Examples: `"/githubwebhook"`, `"/github"`, `"/push"`, `"/commits"`
   * `githubToken`: (String) A GitHub personal access token to increase the GitHub API rate limit from 60 to 5000 requests per hour. This is necessary if you want to be able to successfully push more than 60 files to the web server per hour while using GitHub integration.
-    * Optional
+	* Optional
   * `middleware`: (Array) This is an array of `express` middleware functions.
-    * Optional
-    * Example: `[require("cookie-parser")()]`
+	* Optional
+	* Example: `[require("cookie-parser")()]`
 * Resolves: ([Cube](#cube)) A cube web server.
 
 ### Cube
@@ -145,34 +145,34 @@ const {serve, html} = require("servecube");
 * `tree`: (Object) The planted directory tree. Only use this if you know what you're doing.
 * `async getRawPath(path, method)`: Get a planted file's metadata based on its public path.
   * `path`: (String) The input path. It should start with a base directory, followed by a URL-friendly resource path (which starts with a slash). This value should already be URI-decoded.
-    * Required
-    * Examples: `"www/"`, `"www/test/page/"`, `"error/404"`, `"api/users/CoolGuy43/profile"`, `"www/images/Nice logo.png"`
+	* Required
+	* Examples: `"www/"`, `"www/test/page/"`, `"error/404"`, `"api/users/CoolGuy43/profile"`, `"www/images/Nice logo.png"`
   * `method`: (String) The HTTP method to use in finding the requested path if applicable.
-    * Optional
-    * Default: `"GET"`
-    * Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
+	* Optional
+	* Default: `"GET"`
+	* Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
   * Resolves: (Object) The output file metadata.
-    * `rawPath`: (?String) The relative path to the file, or `undefined` if the requested file is not planted.
-      * Examples: `"www/index.html"`, `"www/test/page/index.NJS"`, `"error/404.njs"`, `"api/users/{username}/profile/GET.njs"`, `"www/images/Nice logo.png"`
-    * `params`: (?Object) All of the requested path template parameters. Object keys are parameter names, and object values are what the keys were substituted with in the path string. This property is unset if there are no parameters. More information on URL templating can be found [here](#njs-files), under the `params` property of context objects.
-    * `methods`: (?Array) All of the allowed HTTP methods you can request the file with through the path's method files. This property is unset if no planted method files exist for the requested path.
-      * Examples: `["POST", "PUT", "PATCH"]`, `["GET"]`
-    * `methodNotAllowed`: (?Boolean) `true` if method files exist but there is no planted file for the requested method, unset if not.
-    * `hasIndex`: (?Boolean) Whether the requested directory has an index. This is unset if the planted file is not a directory.
-    * `async func()`: (?Function) The function to call to execute the planted file, or `undefined` if the file is not an NJS file. Only use this if you know what you're doing.
+	* `rawPath`: (?String) The relative path to the file, or `undefined` if the requested file is not planted.
+	  * Examples: `"www/index.html"`, `"www/test/page/index.NJS"`, `"error/404.njs"`, `"api/users/{username}/profile/GET.njs"`, `"www/images/Nice logo.png"`
+	* `params`: (?Object) All of the requested path template parameters. Object keys are parameter names, and object values are what the keys were substituted with in the path string. This property is unset if there are no parameters. More information on URL templating can be found [here](#njs-files), under the `params` property of context objects.
+	* `methods`: (?Array) All of the allowed HTTP methods you can request the file with through the path's method files. This property is unset if no planted method files exist for the requested path.
+	  * Examples: `["POST", "PUT", "PATCH"]`, `["GET"]`
+	* `methodNotAllowed`: (?Boolean) `true` if method files exist but there is no planted file for the requested method, unset if not.
+	* `hasIndex`: (?Boolean) Whether the requested directory has an index. This is unset if the planted file is not a directory.
+	* `async func()`: (?Function) The function to call to execute the planted file, or `undefined` if the file is not an NJS file. Only use this if you know what you're doing.
 * `limb(rawPath)`: (Function) Remove a file from the tree. This method will not delete the file on the file system.
   * `rawPath`: (String) The relative path to the file.
-    * Required
-    * Examples: Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.
+	* Required
+	* Examples: Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.
 * `async replant(rawPath)`: (Function) Refresh a planted file in the tree. The file will be automatically limbed, if it is not already, before it is replanted. This method will read from the file system.
   * `rawPath`: Same as in `cube.limb`.
 * `async load(path, context)`: (Function) Load and execute a planted file. More information can be found [here](#njs-files).
   * `path`: (String) Any value compatible with the `cube.getRawPath` `path` parameter.
-    * Required
+	* Required
   * `context`: (Object) The context of the file, if it is an NJS file. This is what `this` will be set to from inside the file's execution. It is recommended that, whenever you use this method from within an NJS file, you set this property to `this` or an object that spreads `this` so that the current context is passed as well.
-    * Optional
-    * Default: `{}`
-    * Examples: `this`, `{...this, method: "POST"}`, `{errorCode: 404}`, `{test: true, magic: "real"}`
+	* Optional
+	* Default: `{}`
+	* Examples: `this`, `{...this, method: "POST"}`, `{errorCode: 404}`, `{test: true, magic: "real"}`
   * Resolves: (Object) A context object after having been used in the loaded script.
 * `loadCache`: (Object) All of the cached request contexts for caching the `cube.load` method. Only use this if you know what you're doing.
 
@@ -192,17 +192,17 @@ ServeCube wraps `express`, and uses custom middleware that does a few convenient
 * It also sets all of these properties on the `express` request object. (A reference of the `express`-defined properties can be found [here](https://expressjs.com/en/api.html#req).)
   * `body`: (?Buffer) The request body, parsed by [`bodyParser.raw`](https://github.com/expressjs/body-parser#bodyparserrawoptions). The `bodyParser` middleware is not customizable as it needs to be raw to be able to parse GitHub webhooks. If you want the body to be under a specific format, you can parse the buffer into something else.
   * `subdomain`: (String) The subdomain defined in the URL, but concatenated into one string, periods and all, rather than just an array of period-split values provided by `req.subdomains`. This is an empty string if there is no subdomain in the URL.
-    * Examples: `""`, `"www"`, `"api"`, `"some.sub.domain"`
+	* Examples: `""`, `"www"`, `"api"`, `"some.sub.domain"`
   * `decodedURL`: (String) The request's URI-decoded URL. If there is an error while decoding, [HTTP error 400](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400) is thrown.
-    * Example: `"/a URL path/with spaces in it?wow isn't it cool"`
+	* Example: `"/a URL path/with spaces in it?wow isn't it cool"`
   * `dir`: (String) The subdomain directory of the requested file.
-    * Examples: `"www"`, `"api"`
+	* Examples: `"www"`, `"api"`
   * `queryString`: (?String) Everything after the question mark in the decoded URL, or `undefined` if there is no question mark.
-    * Examples: `"v=7wiNUBaK-6M"`, `"magic=real&test=true"`, `"q=awesome&safe=active&ssui=on"`, `"wow isn't it cool`"
+	* Examples: `"v=7wiNUBaK-6M"`, `"magic=real&test=true"`, `"q=awesome&safe=active&ssui=on"`, `"wow isn't it cool`"
   * `decodedPath`: (String) The decoded URL without the query string and without the question mark.
-    * Example: `"/a URL path/with spaces in it"`
+	* Example: `"/a URL path/with spaces in it"`
   * `rawPath`: (String) The raw path to the planted file that was requested.
-    * Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
+	* Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
 
 ServeCube's middleware runs before any of the middleware you define in [`options.middleware`](#async-serveoptions).
 
@@ -255,10 +255,10 @@ Context objects use the following properties.
   * `context`: (Object) The predefined context object.
   * Returns: (String) The cache index.
   * Examples:
-    * `() => ""` This would not vary cached contexts for that file.
-    * `context => context.req.queryString` This would vary cached contexts based on the URL's query string.
-    * `context => context.req.get("User-Agent")` This would vary cached contexts based on the `User-Agent` header.
-    * ``context => `${context.req.get("Content-Type")} ${encodeURIComponent(context.params.user)} ${encodeURIComponent(context.params.message)}` `` This would vary cached contexts based on the `Content-Type` header, the `user` URL parameter, and the `message` URL parameter.
+	* `() => ""` This would not vary cached contexts for that file.
+	* `context => context.req.queryString` This would vary cached contexts based on the URL's query string.
+	* `context => context.req.get("User-Agent")` This would vary cached contexts based on the `User-Agent` header.
+	* ``context => `${context.req.get("Content-Type")} ${encodeURIComponent(context.params.user)} ${encodeURIComponent(context.params.message)}` `` This would vary cached contexts based on the `Content-Type` header, the `user` URL parameter, and the `message` URL parameter.
 
 Any properties not on the above list **are passed** into loaded context and **are included** in resolved context.
 
