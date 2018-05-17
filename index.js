@@ -9,12 +9,17 @@ const childProcess = require("child_process");
 const crypto = require("crypto");
 const babel = require("babel-core");
 const UglifyJS = require("uglify-js");
+const sass = require("node-sass");
 const CleanCSS = require("clean-css");
 const mime = require("mime");
 const pathToRegexpOptions = {
 	sensitive: true,
 	strict: true
 };
+const cleaner = new CleanCSS({
+	inline: false,
+	sourceMap: true
+});
 mime.define({
 	"text/html": ["njs"]
 });
@@ -633,14 +638,17 @@ const ServeCube = {
 										contents = result.code;
 										await fs.writeFile(`${fullPath}.map`, result.map);
 									} else if(type === "text/css") {
-										const output = new CleanCSS({
-											inline: false,
-											sourceMap: true
-										}).minify(String(contents));
+										const mapPath = `${fullPath}.map`;
+										const result = sass.renderSync({
+											data: String(contents),
+											sourceMap: true,
+											outFile: mapPath
+										});
+										const output = cleaner.minify(String(result.css), String(result.map));
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
 										sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
-										await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
+										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
 									}
 								}
 							}
