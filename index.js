@@ -143,8 +143,7 @@ const ServeCube = {
 		if(typeof options.githubToken === "string") {
 			requestOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
-		const portIndex = options.domain.indexOf(":");
-		const originTest = new RegExp(`^(https?://(?:.+\\.)?${escapeRegExp(portIndex === -1 ? options.domain : options.domain.slice(portIndex))}(?::\\d{1,5})?)$`);
+		const originTest = new RegExp(`^https?://(?:.+\\.)?${escapeRegExp(options.domain)}$`);
 		const app = cube.app = express();
 		app.set("trust proxy", true);
 		if(!options.domain.includes(".")) {
@@ -515,6 +514,7 @@ const ServeCube = {
 			const origin = req.get("Origin");
 			if(origin && originTest.test(origin)) {
 				res.set("Access-Control-Allow-Origin", origin);
+				res.set("Access-Control-Allow-Headers", "*");
 			}
 			let redirect = false;
 			if(options.httpsRedirect && req.protocol === "http") {
@@ -714,7 +714,7 @@ const ServeCube = {
 				}
 				req.rawPath = rawPath;
 				if(req.method === "OPTIONS") {
-					res.next();
+					req.next();
 					return;
 				}
 				if(!rawPath) {
