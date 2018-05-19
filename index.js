@@ -458,7 +458,7 @@ const ServeCube = {
 				};
 			}
 		};
-		const renderLoad = async (path, req, res) => {
+		const renderLoad = cube.renderLoad = async (path, req, res) => {
 			res.set("Content-Type", "text/html");
 			const context = {
 				req,
@@ -487,7 +487,7 @@ const ServeCube = {
 				res.send(result.value);
 			}
 		};
-		const renderError = async (status, req, res) => {
+		const renderError = cube.renderError = async (status, req, res) => {
 			res.status(status);
 			const stringStatus = String(status);
 			if(options.errorDir) {
