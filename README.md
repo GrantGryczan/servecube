@@ -134,7 +134,10 @@ const {serve, html} = require("servecube");
 	* Examples: `"/githubwebhook"`, `"/github"`, `"/push"`, `"/commits"`
   * `githubToken`: (String) A GitHub personal access token to increase the GitHub API rate limit from 60 to 5000 requests per hour. This is necessary if you want to be able to successfully push more than 60 files to the web server per hour while using GitHub integration.
 	* Optional
-  * `middleware`: (Array) This is an array of `express` middleware functions.
+  * `preMiddleware`: (Array) This is an array of `express` middleware functions to run before ServeCube's middleware. You should not use this property unless you need to.
+	* Optional
+	* Example: `[require("cookie-parser")()]`
+  * `middleware`: (Array) This is an array of `express` middleware functions to run after ServeCube's middleware.
 	* Optional
 	* Example: `[require("cookie-parser")()]`
 * Resolves: ([Cube](#cube)) A cube web server.

@@ -507,6 +507,13 @@ const ServeCube = {
 			type: "*/*"
 		}));
 		app.disable("X-Powered-By");
+		if(options.preMiddleware instanceof Array) {
+			for(const v of options.preMiddleware) {
+				if(v instanceof Function) {
+					app.use(v);
+				}
+			}
+		}
 		app.use(async (req, res) => {
 			res.set("X-Powered-By", "ServeCube");
 			res.set("X-Frame-Options", "SAMEORIGIN");
@@ -714,7 +721,6 @@ const ServeCube = {
 				}
 				req.rawPath = rawPath;
 				if(req.method === "OPTIONS") {
-					req.next();
 					return;
 				}
 				if(!rawPath) {
@@ -737,10 +743,6 @@ const ServeCube = {
 			}
 		}
 		app.all("*", async (req, res) => {
-			if(req.method === "OPTIONS") {
-				res.send();
-				return;
-			}
 			if(req.rawPath) {
 				if(njsExtTest.test(req.rawPath)) {
 					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
