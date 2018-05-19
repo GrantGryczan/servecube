@@ -136,7 +136,6 @@ const {serve, html} = require("servecube");
 	* Optional
   * `preMiddleware`: (Array) This is an array of `express` middleware functions to run before ServeCube's middleware. You should not use this property unless you need to.
 	* Optional
-	* Example: `[require("cookie-parser")()]`
   * `middleware`: (Array) This is an array of `express` middleware functions to run after ServeCube's middleware.
 	* Optional
 	* Example: `[require("cookie-parser")()]`
