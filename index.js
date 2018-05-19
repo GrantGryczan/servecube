@@ -721,6 +721,7 @@ const ServeCube = {
 				}
 				req.rawPath = rawPath;
 				if(req.method === "OPTIONS") {
+					res.send();
 					return;
 				}
 				if(!rawPath) {
