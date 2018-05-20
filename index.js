@@ -459,7 +459,9 @@ const ServeCube = {
 			}
 		};
 		const renderLoad = cube.renderLoad = async (path, req, res) => {
-			res.set("Content-Type", "text/html");
+			if(!res.get("Content-Type")) {
+				res.set("Content-Type", "text/html");
+			}
 			const context = {
 				req,
 				res,
@@ -746,7 +748,9 @@ const ServeCube = {
 		app.all("*", async (req, res) => {
 			if(req.rawPath) {
 				if(njsExtTest.test(req.rawPath)) {
-					res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
+					if(!res.get("Content-Type")) {
+						res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
+					}
 					renderLoad(req.dir + req.decodedPath, req, res);
 				} else if(req.method === "GET") {
 					if(!res.get("Cache-Control")) {
