@@ -523,7 +523,7 @@ const ServeCube = {
 			const origin = req.get("Origin");
 			if(origin && originTest.test(origin)) {
 				res.set("Access-Control-Allow-Origin", origin);
-				res.set("Access-Control-Allow-Headers", "*");
+				res.set("Access-Control-Allow-Headers", req.get("Access-Control-Request-Headers"));
 				res.set("Access-Control-Allow-Credentials", "true");
 			}
 			let redirect = false;
