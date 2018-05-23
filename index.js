@@ -524,6 +524,7 @@ const ServeCube = {
 			if(origin && originTest.test(origin)) {
 				res.set("Access-Control-Allow-Origin", origin);
 				res.set("Access-Control-Allow-Headers", "*");
+				res.set("Access-Control-Allow-Credentials", "true");
 			}
 			let redirect = false;
 			if(options.httpsRedirect && req.protocol === "http") {
