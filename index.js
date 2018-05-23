@@ -57,7 +57,7 @@ const byNames = v => v.name;
 const byNoLastItems = v => v.slice(0, -1);
 const byUniqueDirectories = (v, i, t) => v.endsWith("/") && t.indexOf(v) === i;
 const ServeCube = {
-	html: function() {
+	html: function() { // TODO: remove undefined values
 		let string = arguments[0][0];
 		const substitutions = Array.prototype.slice.call(arguments, 1);
 		for(let i = 0; i < substitutions.length; i++) {
