@@ -635,7 +635,8 @@ const ServeCube = {
 											filename,
 											minified: true,
 											presets: ["env"],
-											sourceMaps: true
+											sourceMaps: true,
+											plugins: ["transform-runtime"]
 										});
 										const result = UglifyJS.minify(compiled.code, {
 											parse: {
