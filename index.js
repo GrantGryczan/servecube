@@ -634,11 +634,8 @@ const ServeCube = {
 											compact: true,
 											filename,
 											minified: true,
-											presets: [["env", {
-												modules: false
-											}]],
-											sourceMaps: true,
-											plugins: ["transform-runtime"]
+											presets: ["env"],
+											sourceMaps: true
 										});
 										const result = UglifyJS.minify(compiled.code, {
 											parse: {
@@ -653,7 +650,7 @@ const ServeCube = {
 											}
 										});
 										contents = result.code;
-										await fs.writeFile(`${fullPath}.map`, result.map);
+										await fs.writeFile(`${fullPath}.map`, JSON.stringify(compiled.map));
 									} else if(type === "text/css") {
 										const mapPath = `${fullPath}.map`;
 										const result = sass.renderSync({
