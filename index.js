@@ -634,7 +634,9 @@ const ServeCube = {
 											compact: true,
 											filename,
 											minified: true,
-											presets: ["env"],
+											presets: [["env", {
+												modules: false
+											}]],
 											sourceMaps: true,
 											plugins: ["transform-runtime"]
 										});
