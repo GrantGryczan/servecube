@@ -646,7 +646,7 @@ const ServeCube = {
 											}
 										});
 										contents = result.code;
-										await fs.writeFile(`${fullPath}.map`, result.map));
+										await fs.writeFile(`${fullPath}.map`, result.map);
 									} else if(type === "text/css") {
 										const mapPath = `${fullPath}.map`;
 										const result = sass.renderSync({
