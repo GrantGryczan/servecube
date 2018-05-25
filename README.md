@@ -195,9 +195,13 @@ const {serve, html} = require("servecube");
 ## Middleware
 ServeCube wraps `express`, and uses custom middleware that does a few convenient things.
 
+(You can counteract any of these things by adding your own middleware using the `middleware` option on [`serve`](#async-serveoptions).)
+
 * It sets the [`X-Frame-Options` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) to `"SAMEORIGIN"`, to block `iframe`s of your website from being loaded on other websites, preventing most clickjacking.
 * It sets the [`Vary` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary) to "`Origin`", so that CORS headers are not cached by the client across different websites.
-* It sets the [`Access-Control-Allow-Origin` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin) to your website's origin, so that HTTP requests to your web server may only be made from your own website.
+* It sets the [`Access-Control-Allow-Origin` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin) to your website's origin, so that browser requests to your web server may only be made from your own website (regardless of subdomain).
+* It sets the [`Access-Control-Request-Headers` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Request-Headers) to allow all headers from browser requests.
+* It sets the [`Access-Control-Allow-Credentials` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials) to "`true`" so your website is able to save cookies through browser requests.
 * It redirects to HTTPS if the option is available and not disabled.
 * It redirects to the correct subdomain if applicable.
 * It removes duplicate slashes from the URL if there are any.
