@@ -477,11 +477,7 @@ const ServeCube = {
 				}
 			}
 			if(result.redirect) {
-				if(result.status) {
-					res.redirect(result.status, result.redirect);
-				} else {
-					res.redirect(result.redirect);
-				}
+				res.redirect(result.status || 307, result.redirect);
 			} else {
 				if(result.status) {
 					res.status(result.status);
@@ -713,7 +709,7 @@ const ServeCube = {
 				redirect += options.domain + req.decodedURL;
 			}
 			if(redirect !== false) {
-				res.redirect(redirect);
+				res.redirect(308, redirect);
 				return;
 			} else {
 				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
@@ -732,7 +728,7 @@ const ServeCube = {
 				}
 				if(!rawPath) {
 					if(hasIndex) {
-						res.redirect(req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`);
+						res.redirect(308, req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`);
 						return;
 					} else if(methodNotAllowed) {
 						renderError(405, req, res);

@@ -254,7 +254,7 @@ Context objects use the following properties.
 * `status`: (Number) The HTTP response status code. This property also applies to redirection status. Use this instead of any properties or methods of `this.res`.
   * Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
   * Optional
-  * Default: `200`
+  * Default: `200`, or `307` if the `redirect` option is defined
 * `redirect`: (String) The URL to redirect the client to. Use this instead of any properties or methods of `this.res`.
   * Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
   * Optional
