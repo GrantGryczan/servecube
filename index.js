@@ -57,13 +57,16 @@ const byNames = v => v.name;
 const byNoLastItems = v => v.slice(0, -1);
 const byUniqueDirectories = (v, i, t) => v.endsWith("/") && t.indexOf(v) === i;
 const ServeCube = {
-	html: function() { // TODO: remove undefined values
+	html: function() {
 		let string = arguments[0][0];
-		const substitutions = Array.prototype.slice.call(arguments, 1);
-		for(let i = 0; i < substitutions.length; i++) {
-			let code = String(substitutions[i]);
-			for(const v of htmlReplacements) {
-				code = code.replace(v[0], v[1]);
+		const exps = Array.prototype.slice.call(arguments, 1);
+		for(let i = 0; i < exps.length; i++) {
+			let code = String(exps[i]);
+			if(arguments[0][i].endsWith("$")) {
+				string = string.slice(0, -1);
+				for(const v of htmlReplacements) {
+					code = code.replace(v[0], v[1]);
+				}
 			}
 			string += code + arguments[0][i+1];
 		}
