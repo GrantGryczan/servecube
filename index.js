@@ -50,7 +50,8 @@ const templateTest = /\{(\w+)}/g;
 const htmlTest = /(html`(?:(?:\${(?:`(?:.*|\n)`|"(?:.*|\n)"|'(?:.*|\n)'|.|\n)*?})|.|\n)*?`)/g;
 const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
 const subdomainValueTest = /^.*[.\/]$/;
-const htmlReplacements = [/*[/&/g, "&amp;"], */[/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
+const htmlExps = ["$", "&"];
+const htmlReplacements = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
 const urlReplacements = [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]];
 const byFirstItems = v => v[0];
 const byNames = v => v.name;
@@ -59,13 +60,14 @@ const byUniqueDirectories = (v, i, t) => v.endsWith("/") && t.indexOf(v) === i;
 const ServeCube = {
 	html: function() {
 		let string = arguments[0][0];
-		const exps = Array.prototype.slice.call(arguments, 1);
-		for(let i = 0; i < exps.length; i++) {
-			let code = String(exps[i]);
-			if(arguments[0][i].endsWith("$")) {
+		const exps = arguments.length-1;
+		for(let i = 0; i < exps; i++) {
+			let code = String(arguments[i+1]);
+			const expIndex = htmlExps.indexOf(arguments[0][i].slice(-1));
+			if(expIndex !== -1) {
 				string = string.slice(0, -1);
-				for(const v of htmlReplacements) {
-					code = code.replace(v[0], v[1]);
+				for(let j = expIndex; j < htmlReplacements.length; j++) {
+					code = code.replace(...htmlReplacements[j]);
 				}
 			}
 			string += code + arguments[0][i+1];
@@ -697,7 +699,7 @@ const ServeCube = {
 			req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
 			let url = req.decodedPath;
 			for(const v of urlReplacements) {
-				url = url.replace(v[0], v[1]);
+				url = url.replace(...v);
 			}
 			if(queryIndex) {
 				url += `?${req.queryString}`;
