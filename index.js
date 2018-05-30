@@ -617,7 +617,6 @@ const ServeCube = {
 									await fs.mkdir(nextPath);
 								}
 							}
-							const isJS = ;
 							if(njsExtTest.test(i)) {
 								contents = minifyHTMLInJS(String(contents));
 							} else if(htmlExtTest.test(i)) {
