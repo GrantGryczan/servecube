@@ -609,8 +609,10 @@ const ServeCube = {
 									await fs.mkdir(nextPath);
 								}
 							}
-							if(njsExtTest.test(i)) {
-								contents = String(contents).split(htmlTest); // TODO: Don't minify content in `textarea` and `pre` tags.
+							const type = mime.getType(i);
+							const isJS = type === "application/javascript";
+							if(isJS || njsExtTest.test(i)) {
+								contents = String(contents).split(htmlTest);
 								for(let j = 1; j < contents.length; j += 2) {
 									contents[j] = contents[j].replace(brs, "").replace(whitespace, " ");
 								}
@@ -626,8 +628,7 @@ const ServeCube = {
 									}
 								}
 								if(publicDir) {
-									const type = mime.getType(i);
-									if(type === "application/javascript") {
+									if(isJS) {
 										const filename = i.slice(i.lastIndexOf("/")+1);
 										const compiled = babel.transform(String(contents), {
 											ast: false,
