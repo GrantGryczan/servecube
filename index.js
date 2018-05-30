@@ -57,6 +57,14 @@ const byFirstItems = v => v[0];
 const byNames = v => v.name;
 const byNoLastItems = v => v.slice(0, -1);
 const byUniqueDirectories = (v, i, t) => v.endsWith("/") && t.indexOf(v) === i;
+const minifyHTML = code => code.replace(brs, "").replace(whitespace, " ");
+const minifyHTMLInJS = code => {
+	code = code.split(htmlTest);
+	for(let j = 1; j < code.length; j += 2) {
+		code[j] = minifyHTML(code[j]);
+	}
+	return code.join("");
+};
 const ServeCube = {
 	html: function() {
 		let string = arguments[0][0];
@@ -609,16 +617,11 @@ const ServeCube = {
 									await fs.mkdir(nextPath);
 								}
 							}
-							const type = mime.getType(i);
-							const isJS = type === "application/javascript";
-							if(isJS || njsExtTest.test(i)) {
-								contents = String(contents).split(htmlTest);
-								for(let j = 1; j < contents.length; j += 2) {
-									contents[j] = contents[j].replace(brs, "").replace(whitespace, " ");
-								}
-								contents = contents.join("");
+							const isJS = ;
+							if(njsExtTest.test(i)) {
+								contents = minifyHTMLInJS(String(contents));
 							} else if(htmlExtTest.test(i)) {
-								contents = String(contents).replace(brs, "").replace(whitespace, " ");
+								contents = minifyHTML(String(contents));
 							} else {
 								let publicDir = false;
 								for(const v of Object.values(dirs)) {
@@ -628,9 +631,10 @@ const ServeCube = {
 									}
 								}
 								if(publicDir) {
-									if(isJS) {
+									const type = mime.getType(i);
+									if(type === "application/javascript") {
 										const filename = i.slice(i.lastIndexOf("/")+1);
-										const compiled = babel.transform(String(contents), {
+										const compiled = babel.transform(minifyHTMLInJS(String(contents)), {
 											ast: false,
 											comments: false,
 											compact: true,
