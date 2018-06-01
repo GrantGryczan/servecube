@@ -1,5 +1,5 @@
 # ServeCube
-ServeCube is a modular Node web framework optimized for websites and RESTful web services for your development convenience.
+ServeCube is a modular Node web framework optimized for websites and web services for your development convenience.
 ```
 npm install servecube --save
 ```
