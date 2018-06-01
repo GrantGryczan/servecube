@@ -778,9 +778,11 @@ const ServeCube = {
 						res.set("Cache-Control", "max-age=86400");
 					}
 					const type = mime.getType(req.rawPath);
-					res.set("Content-Type", type);
-					if(type === "application/javascript" || type === "text/css") {
-						res.set("SourceMap", `${req.decodedPath}.map`);
+					if(type) {
+						res.set("Content-Type", type);
+						if(type === "application/javascript" || type === "text/css") {
+							res.set("SourceMap", `${req.decodedPath}.map`);
+						}
 					}
 					fs.createReadStream(options.basePath + req.rawPath).pipe(res);
 				} else {
