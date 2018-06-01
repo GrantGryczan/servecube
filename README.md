@@ -178,14 +178,14 @@ const {serve, html} = require("servecube");
 	* Examples: `this`, `{...this, method: "POST"}`, `{errorCode: 404}`, `{test: true, magic: "real"}`
   * Resolves: (Object) A context object after having been used in the loaded script.
 * `loadCache`: (Object) All of the cached request contexts for caching the `cube.load` method. Only use this if you know what you're doing.
-* `async renderLoad(path, req, res)`: (Function) Load and send a planted file through an HTTP request.
+* `async renderLoad(path, req, res)`: (Function) Load and send a planted file through an HTTP request. Do not use this in any page code, or any case where a context has already been created. If you want to render an error page from inside an NJS file, `load` it manually.
   * `path`: (String) Any value compatible with the `cube.getRawPath` `path` parameter. This is particularly useful in middleware.
 	* Required
   * `req`: (Object) An [`express` request object](https://expressjs.com/en/api.html#req).
 	* Required
   * `res`: (Object) An [`express` response object](https://expressjs.com/en/api.html#res).
 	* Required
-* `async renderError(status, req, res)`: (Function) Load and send an error file through an HTTP request. This is particularly useful in middleware.
+* `async renderError(status, req, res)`: (Function) Load and send an error file through an HTTP request. This is particularly useful in middleware. Do not use this in any page code, or any case where a context has already been created. If you want to render an error page from inside an NJS file, `load` it manually.
   * `status`: (Number) An HTTP status code, typically of an error.
 	* Required
   * `req`: (Object) An [`express` request object](https://expressjs.com/en/api.html#req).
