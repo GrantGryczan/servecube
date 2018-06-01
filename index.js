@@ -625,16 +625,18 @@ const ServeCube = {
 								let publicDir = false;
 								for(const v of Object.values(dirs)) {
 									if(i.startsWith(v)) {
-										publicDir = true;
+										publicDir = v;
 										break;
 									}
 								}
 								if(publicDir) {
 									const type = mime.getType(i);
 									if(type === "application/javascript") {
+										const originalContents = minifyHTMLInJS(String(contents));
+										await fs.writeFile(`${fullPath}.source`, originalContents);
 										const filenameIndex = i.lastIndexOf("/")+1;
 										const filename = i.slice(filenameIndex);
-										const compiled = babel.transform(minifyHTMLInJS(String(contents)), {
+										const compiled = babel.transform(originalContents, {
 											ast: false,
 											comments: false,
 											compact: true,
@@ -652,34 +654,39 @@ const ServeCube = {
 												passes: 2
 											},
 											sourceMap: {
-												filename,
 												content: JSON.stringify(compiled.map),
-												root: i.slice(0, filenameIndex)
+												root: i.slice(publicDir.length, filenameIndex)
 											}
 										});
 										contents = result.code;
-										await fs.writeFile(`${fullPath}.map`, result.map);
+										const sourceMap = JSON.parse(result.map);
+										sourceMap.sources = [`${filename}.source`];
+										await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
+										await replant(`${i}.source`);
+										await replant(`${i}.map`);
 									} else if(type === "text/css") {
-										const filenameIndex = i.lastIndexOf("/")+1;
+										const originalContents = String(contents);
+										await fs.writeFile(`${fullPath}.source`, originalContents);
 										const mapPath = `${fullPath}.map`;
 										const result = sass.renderSync({
-											data: String(contents),
+											data: originalContents,
 											outFile: mapPath,
 											sourceMap: true
 										});
 										const output = cleaner.minify(String(result.css), String(result.map));
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
-										sourceMap.sources = [i.slice(filenameIndex)];
-										sourceMap.sourceRoot = i.slice(0, filenameIndex);
+										const filenameIndex = i.lastIndexOf("/")+1;
+										sourceMap.sourceRoot = i.slice(publicDir.length, filenameIndex);
+										sourceMap.sources = [`${i.slice(filenameIndex)}.source`];
 										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
+										await replant(`${i}.source`);
+										await replant(`${i}.map`);
 									}
 								}
 							}
 							await fs.writeFile(fullPath, contents);
-							try {
-								await replant(i);
-							} catch(err) {}
+							await replant(i);
 						}
 					}
 					res.send();
