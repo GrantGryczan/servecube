@@ -642,7 +642,6 @@ const ServeCube = {
 											minified: true,
 											presets: ["env"],
 											sourceMaps: true,
-											sourceRoot: i.slice(0, filenameIndex),
 											sourceType: "script"
 										});
 										const result = UglifyJS.minify(compiled.code, {
@@ -653,8 +652,9 @@ const ServeCube = {
 												passes: 2
 											},
 											sourceMap: {
+												filename,
 												content: JSON.stringify(compiled.map),
-												filename
+												sourceRoot: i.slice(0, filenameIndex)
 											}
 										});
 										contents = result.code;
@@ -665,13 +665,13 @@ const ServeCube = {
 										const result = sass.renderSync({
 											data: String(contents),
 											outFile: mapPath,
-											sourceMap: true,
-											sourceMapRoot: i.slice(0, filenameIndex)
+											sourceMap: true
 										});
 										const output = cleaner.minify(String(result.css), String(result.map));
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
 										sourceMap.sources = [i.slice(filenameIndex)];
+										sourceMap.sourceRoot = i.slice(0, filenameIndex);
 										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
 									}
 								}
