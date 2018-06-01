@@ -686,7 +686,9 @@ const ServeCube = {
 								}
 							}
 							await fs.writeFile(fullPath, contents);
-							await replant(i);
+							try {
+								await replant(i);
+							} catch(err) {}
 						}
 					}
 					res.send();
