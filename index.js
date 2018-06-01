@@ -654,7 +654,7 @@ const ServeCube = {
 											sourceMap: {
 												filename,
 												content: JSON.stringify(compiled.map),
-												sourceRoot: i.slice(0, filenameIndex)
+												root: i.slice(0, filenameIndex)
 											}
 										});
 										contents = result.code;
