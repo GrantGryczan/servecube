@@ -640,7 +640,8 @@ const ServeCube = {
 											filename,
 											minified: true,
 											presets: ["env"],
-											sourceMaps: true
+											sourceMaps: true,
+											sourceType: "script"
 										});
 										const result = UglifyJS.minify(compiled.code, {
 											parse: {
@@ -768,7 +769,7 @@ const ServeCube = {
 					const type = mime.getType(req.rawPath);
 					res.set("Content-Type", type);
 					if(type === "application/javascript" || type === "text/css") {
-						res.set("SourceMap", `${req.decodedPath.slice(req.decodedPath.lastIndexOf("/")+1)}.map`);
+						res.set("SourceMap", `${req.decodedPath}.map`);
 					}
 					fs.createReadStream(options.basePath + req.rawPath).pipe(res);
 				} else {
