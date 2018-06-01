@@ -632,7 +632,8 @@ const ServeCube = {
 								if(publicDir) {
 									const type = mime.getType(i);
 									if(type === "application/javascript") {
-										const filename = i.slice(i.lastIndexOf("/")+1);
+										const filenameIndex = i.lastIndexOf("/")+1;
+										const filename = i.slice(filenameIndex);
 										const compiled = babel.transform(minifyHTMLInJS(String(contents)), {
 											ast: false,
 											comments: false,
@@ -641,6 +642,7 @@ const ServeCube = {
 											minified: true,
 											presets: ["env"],
 											sourceMaps: true,
+											sourceRoot: i.slice(0, filenameIndex),
 											sourceType: "script"
 										});
 										const result = UglifyJS.minify(compiled.code, {
@@ -658,16 +660,18 @@ const ServeCube = {
 										contents = result.code;
 										await fs.writeFile(`${fullPath}.map`, result.map);
 									} else if(type === "text/css") {
+										const filenameIndex = i.lastIndexOf("/")+1;
 										const mapPath = `${fullPath}.map`;
 										const result = sass.renderSync({
 											data: String(contents),
+											outFile: mapPath,
 											sourceMap: true,
-											outFile: mapPath
+											sourceMapRoot: i.slice(0, filenameIndex)
 										});
 										const output = cleaner.minify(String(result.css), String(result.map));
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
-										sourceMap.sources = [i.slice(i.lastIndexOf("/")+1)];
+										sourceMap.sources = [i.slice(filenameIndex)];
 										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
 									}
 								}
