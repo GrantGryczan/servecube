@@ -1,6 +1,6 @@
 # ServeCube
 ServeCube is a modular Node web framework optimized for websites and web services for your development convenience.
-```
+```bash
 npm install servecube --save
 ```
 **Node 8.6.0+** is required.
