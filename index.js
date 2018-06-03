@@ -65,7 +65,7 @@ const minifyHTMLInJS = code => {
 	}
 	return code.join("");
 };
-const ServeCube = {
+const ServeCube = module.exports = {
 	html: function() {
 		let string = arguments[0][0];
 		const exps = arguments.length-1;
@@ -801,4 +801,3 @@ const ServeCube = {
 		return cube;
 	}
 };
-module.exports = ServeCube;
