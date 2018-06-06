@@ -422,7 +422,6 @@ const ServeCube = module.exports = {
 					delete context.value;
 					delete context.status;
 					delete context.redirect;
-					delete context.headers;
 					delete context.cache;
 				} else {
 					context = {};
@@ -478,17 +477,9 @@ const ServeCube = module.exports = {
 			const context = {
 				req,
 				res,
-				method: req.method,
-				headers: {}
+				method: req.method
 			};
 			const result = await load(path, context);
-			if(result.headers) {
-				for(const i of Object.keys(result.headers)) {
-					if(result.headers[i]) {
-						res.set(i, result.headers[i]);
-					}
-				}
-			}
 			if(result.redirect) {
 				res.redirect(result.status || 307, result.redirect);
 			} else {

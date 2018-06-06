@@ -292,11 +292,6 @@ Context objects use the following properties.
   * Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
   * Optional
   * Examples: `"/test/page"`, `"https://example.com/test/page"`
-* `headers`: (Object) An object of the HTTP response headers. Object keys are header names and object values are header values. Use this instead of any properties or methods of `this.res`.
-  * Presence: This property **is predefined** by ServeCube for HTTP requests as an empty object. This property **is not passed** into loaded context. This property **is included** in resolved context.
-  * Optional
-  * Default: `{}`
-  * Example: `{"Content-Type": "image/png"}`
 * `value`: Any body value compatible with `express`'s `res.send` method. A reference can be found [here](https://expressjs.com/en/api.html#res.send). This is the HTTP response body for HTTP requests, or just a regular context property for ServeCube loads. Use this instead of any properties or methods of `this.res`.
   * Presence: This property **is always predefined** by ServeCube as an empty string. This property **is not passed** into loaded context. This property **is included** in resolved context.
   * Required
