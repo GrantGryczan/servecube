@@ -87,12 +87,12 @@ const ServeCube = module.exports = {
 		if(!(options instanceof Object)) {
 			throw new ServeCubeError("The `options` parameter must be an object.");
 		}
+		if(typeof options.domain !== "string") {
+			throw new ServeCubeError("The `domain` option must be a string.");
+		}
 		options = {...options};
 		if(!(options.eval instanceof Function)) {
 			options.eval = eval;
-		}
-		if(typeof options.domain !== "string") {
-			throw new ServeCubeError("The `domain` option must be a string.");
 		}
 		if(typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
@@ -147,6 +147,12 @@ const ServeCube = module.exports = {
 			}
 		} else {
 			options.githubSecret = false;
+		}
+		if(!(options.loadStart instanceof Array)) {
+			delete options.loadStart;
+		}
+		if(!(options.loadEnd instanceof Array)) {
+			delete options.loadEnd;
 		}
 		const requestOptions = {
 			headers: {
@@ -435,8 +441,31 @@ const ServeCube = module.exports = {
 				return loadCache[context.rawPath] && loadCache[context.rawPath][cacheIndex = `#${loadCache[context.rawPath].vary(context)}`] ? {
 					...context,
 					...loadCache[context.rawPath][cacheIndex]
-				} : await new Promise((resolve, reject) => {
-					context.done = () => {
+				} : await new Promise(async (resolve, reject) => {
+					let resolution;
+					if(options.loadStart) {
+						for(const v of options.loadStart) {
+							if(v instanceof Function) {
+								resolution = v(context);
+								if(resolution instanceof Promise) {
+									resolution = await resolution;
+								}
+								if(resolution === false) {
+									break;
+								}
+							}
+						}
+					}
+					context.done = async () => {
+						if(options.loadEnd) {
+							for(const v of options.loadEnd) {
+								if(v instanceof AsyncFunction) {
+									await v(context);
+								} else if(v instanceof Function) {
+									v(context);
+								}
+							}
+						}
 						const returnedContext = {
 							...context
 						};
@@ -460,9 +489,13 @@ const ServeCube = module.exports = {
 						}
 						resolve(returnedContext);
 					};
-					func.call(context).catch(err => {
-						throw new ServeCubeError(`An error occured while executing \`${fullPath}\`.\n${err.stack}`);
-					});
+					if(resolution === false) {
+						context.done();
+					} else {
+						func.call(context).catch(err => {
+							throw new ServeCubeError(`An error occured while executing \`${fullPath}\`.\n${err.stack}`);
+						});
+					}
 				});
 			} else {
 				return {
@@ -483,9 +516,7 @@ const ServeCube = module.exports = {
 			if(result.redirect) {
 				res.redirect(result.status || 307, result.redirect);
 			} else {
-				if(result.status) {
-					res.status(result.status);
-				}
+				res.status(result.status || req.method === "POST" ? 201 || 200);
 				res.send(result.value);
 			}
 		};
