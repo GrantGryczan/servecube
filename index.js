@@ -283,7 +283,7 @@ const ServeCube = module.exports = {
 							parent.methods = {};
 						}
 						for(let i = 1; i < methods.length; i++) {
-							if(methods[i]) {
+							if(i in methods) {
 								parent.methods[methods[i]] = child;
 							}
 						}
