@@ -23,9 +23,9 @@
 		"mime": "^2.3.1",
 		"node-sass": "^4.9.0",
 		"path-to-regexp": "^2.2.1",
-		"request": "^2.86.0",
+		"request": "^2.87.0",
 		"request-promise-native": "^1.0.5",
-		"uglify-js": "^3.3.25"
+		"uglify-js": "^3.4.0"
 	},
 	"devDependencies": {}
 }
