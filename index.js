@@ -522,18 +522,17 @@ const ServeCube = module.exports = {
 			}
 		};
 		const renderError = cube.renderError = async (status, req, res) => {
-			res.status(status);
-			const stringStatus = String(status);
 			if(options.errorDir) {
-				const path = `${options.errorDir}/${stringStatus}`;
+				const path = `${options.errorDir}/${status}`;
 				const {rawPath} = await getRawPath(path, req.method);
 				if(rawPath) {
+					res.status(status);
 					renderLoad(path, req, res);
 				} else {
-					res.send(stringStatus);
+					res.sendStatus(status);
 				}
 			} else {
-				res.send(stringStatus);
+				res.sendStatus(status);
 			}
 		};
 		app.use(bodyParser.raw({
