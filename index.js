@@ -300,7 +300,7 @@ const ServeCube = module.exports = {
 				parent.children[child].children = {};
 			} else if(njsExtTest.test(child)) {
 				try {
-					parent.children[child].func = options.eval(`(async function() {\n${await fs.readFile(fullPath)}\n})`);
+					parent.children[child].func = options.eval(`(async function() {${await fs.readFile(fullPath)}})`);
 				} catch(err) {
 					throw new ServeCubeError(`An error occured while evaluating \`${fullPath}\`.\n${err.stack}`);
 				}
@@ -492,9 +492,11 @@ const ServeCube = module.exports = {
 					if(resolution === false) {
 						context.done();
 					} else {
-						func.call(context).catch(err => {
+						try {
+							await func.call(context);
+						} catch(err) {
 							throw new ServeCubeError(`An error occured while executing \`${fullPath}\`.\n${err.stack}`);
-						});
+						}
 					}
 				});
 			} else {
