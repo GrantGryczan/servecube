@@ -516,8 +516,7 @@ const ServeCube = module.exports = {
 			if(result.redirect) {
 				res.redirect(result.status || 307, result.redirect);
 			} else {
-				res.status(result.status || (req.method === "POST" ? 201 : 200));
-				res.send(result.value);
+				res.sendStatus(result.status || (req.method === "POST" ? 201 : 200));
 			}
 		};
 		const renderError = cube.renderError = async (status, req, res) => {
