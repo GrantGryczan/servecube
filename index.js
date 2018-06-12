@@ -12,6 +12,7 @@ const UglifyJS = require("uglify-js");
 const sass = require("node-sass");
 const CleanCSS = require("clean-css");
 const mime = require("mime");
+const package = require("./package.json");
 const pathToRegexpOptions = {
 	sensitive: true,
 	strict: true
@@ -156,7 +157,7 @@ const ServeCube = module.exports = {
 		}
 		const requestOptions = {
 			headers: {
-				"User-Agent": "ServeCube"
+				"User-Agent": `ServeCube/${package.version}`
 			}
 		};
 		if(typeof options.githubToken === "string") {
