@@ -32,6 +32,7 @@ class ServeCubeError extends Error {
 	}
 }
 const AsyncFunction = (async () => {}).constructor;
+const emptyString = () => "";
 const backslashes = /\\/g;
 const brs = /\n/g;
 const whitespace = /\s+/g;
@@ -479,14 +480,15 @@ const ServeCube = module.exports = {
 						delete returnedContext.params;
 						if(context.cache) {
 							delete returnedContext.cache;
-							if(context.cache instanceof Function) {
-								if(!loadCache[context.rawPath]) {
-									loadCache[context.rawPath] = {
-										vary: context.cache
-									};
-								}
-								loadCache[context.rawPath][`#${context.cache(context)}`] = returnedContext;
+							if(!(context.cache instanceof Function)) {
+								context.cache = emptyString;
 							}
+							if(!loadCache[context.rawPath]) {
+								loadCache[context.rawPath] = {
+									vary: context.cache
+								};
+							}
+							loadCache[context.rawPath][`#${context.cache(context)}`] = returnedContext;
 						}
 						resolve(returnedContext);
 					};

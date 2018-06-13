@@ -91,28 +91,28 @@ const {serve, html} = require("servecube");
 		* Optional but recommended
 		* Default: `eval`
 		* Example: `v => eval(v)`
-	* `domain`: (String) Your website's domain (without any subdomain, and with the port if necessary for URL access).
+	* `domain`: (string) Your website's domain (without any subdomain, and with the port if necessary for URL access).
 		* Required
 		* Examples: `"example.com"`, `"localhost:8080"`, `"miroware.io"`
-	* `basePath`: (String) An absolute path to your current working directory, which should contain your `package.json` file. This value is prepended to every relative path you use. This directory's file structure is cached by ServeCube. If you connect GitHub to ServeCube, the repository's base directory is synced to this one.
+	* `basePath`: (string) An absolute path to your current working directory, which should contain your `package.json` file. This value is prepended to every relative path you use. This directory's file structure is cached by ServeCube. If you connect GitHub to ServeCube, the repository's base directory is synced to this one.
 		* Optional
 		* Default: `process.cwd()`
 		* Examples: `"/home/web/"`, `"/var/www/"`
-	* `errorDir`: (String) A relative path to your error directory.
+	* `errorDir`: (string) A relative path to your error directory.
 		* Optional
 		* Examples: `"error"`, `"err"`
-	* `httpPort`: (Number) The port number listened to for HTTP traffic.
+	* `httpPort`: (number) The port number listened to for HTTP traffic.
 		* Optional
 		* Default: `8080`
 		* Examples: `80`, `3000`, `8888`, `8000`, `8081`
 	* `tls`: (Object) Options for `https.createServer`. A reference can be found [here](https://nodejs.org/api/https.html#https_https_createserver_options_requestlistener). Setting this property enables HTTPS for your cube web server.
 		* Optional
 		* Example: `{key: fs.readFileSync("ssl/privkey.pem"), cert: fs.readFileSync("ssl/cert.pem"), ca: fs.readFileSync("ssl/chain.pem")}`
-	* `httpsPort`: (Number) The port number listened to for HTTPS traffic.
+	* `httpsPort`: (number) The port number listened to for HTTPS traffic.
 		* Optional
 		* Default: `8443`
 		* Examples: `443`, `3443`, `4000`, `8444`
-	* `httpsRedirect`: (Boolean) Whether to redirect HTTP traffic to HTTPS traffic.
+	* `httpsRedirect`: (boolean) Whether to redirect HTTP traffic to HTTPS traffic.
 		* Optional
 		* Default: `true` if `options.tls` is defined, `false` if not
 	* `subdomains`: (Object) Your subdomain configuration. Object keys are subdomains. Object values are strings. Values can represent redirection to another subdomain by that subdomain with a trailing period, or they can represent being associated with a particular directory by its relative path with a trailing slash.
@@ -124,16 +124,16 @@ const {serve, html} = require("servecube");
 			* `{www: "www/", "*": "www."}` The `www` subdomain uses the `www` directory and all other subdomains redirect to the `www` subdomain. The default values are ignored as a wildcard is defined.
 			* `{"": "public_html/", api: "api/"}` No-subdomain uses the `public_html` directory and the `api` subdomain uses the `api` directory. Due to the default, all other subdomains redirect to no-subdomain.
 			* `{m: "www/", mobile: "m."}` The `m` subdomain uses the `www` directory and the `mobile` subdomain redirects to the `m` subdomain. Due to the default, no-subdomain also uses the `www` directory and all other subdomains redirect to no-subdomain.
-	* `githubSecret`: (String) Your GitHub webhook's secret. Setting this property enables GitHub integration.
+	* `githubSecret`: (string) Your GitHub webhook's secret. Setting this property enables GitHub integration.
 		* Optional
-	* `githubSubdomain`: (String) The subdomain to accept GitHub webhook requests on, or an empty string to accept on no-subdomain.
+	* `githubSubdomain`: (string) The subdomain to accept GitHub webhook requests on, or an empty string to accept on no-subdomain.
 		* Optional
 		* Default: `""`
 		* Examples: `"api"`, `"github"`, `"www"`
-	* `githubPayloadURL`: (String) Your GitHub webhook's payload URL. This is the URL GitHub sends data to when you push data to your repository. A request's decoded URL has to be equal to it for GitHub integration to be triggered.
+	* `githubPayloadURL`: (string) Your GitHub webhook's payload URL. This is the URL GitHub sends data to when you push data to your repository. A request's decoded URL has to be equal to it for GitHub integration to be triggered.
 		* Required if GitHub integration is enabled
 		* Examples: `"/githubwebhook"`, `"/github"`, `"/push"`, `"/commits"`
-	* `githubToken`: (String) A GitHub personal access token to increase the GitHub API rate limit from 60 to 5000 requests per hour. This is necessary if you want to be able to successfully push more than 60 files to the web server per hour while using GitHub integration.
+	* `githubToken`: (string) A GitHub personal access token to increase the GitHub API rate limit from 60 to 5000 requests per hour. This is necessary if you want to be able to successfully push more than 60 files to the web server per hour while using GitHub integration.
 		* Optional
 	* `preMiddleware`: (Array) An array of `express` middleware functions to run before ServeCube's middleware. You should not use this property unless you need to, and instead use the `middleware` option.
 		* Optional
@@ -153,30 +153,30 @@ const {serve, html} = require("servecube");
 * `app`: (Object) The `express` app. A reference can be found [here](https://expressjs.com/en/api.html#app).
 * `tree`: (Object) The planted directory tree. Only use this if you know what you're doing.
 * `async getRawPath(path, method)`: Get a planted file's metadata based on its public path.
-	* `path`: (String) The input path. It should start with a base directory, followed by a URL-friendly resource path (which starts with a slash). This value should already be URI-decoded.
+	* `path`: (string) The input path. It should start with a base directory, followed by a URL-friendly resource path (which starts with a slash). This value should already be URI-decoded.
 		* Required
 		* Examples: `"www/"`, `"www/test/page/"`, `"error/404"`, `"api/users/CoolGuy43/profile"`, `"www/images/Nice logo.png"`
-	* `method`: (String) The HTTP method to use in finding the requested path if applicable.
+	* `method`: (string) The HTTP method to use in finding the requested path if applicable.
 		* Optional
 		* Default: `"GET"`
 		* Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
 	* Resolves: (Object) The output file metadata.
-		* `rawPath`: (?String) The relative path to the file, or `undefined` if the requested file is not planted.
+		* `rawPath`: (?string) The relative path to the file, or `undefined` if the requested file is not planted.
 			* Examples: `"www/index.html"`, `"www/test/page/index.NJS"`, `"error/404.njs"`, `"api/users/{username}/profile/GET.njs"`, `"www/images/Nice logo.png"`
 		* `params`: (?Object) All of the requested path template parameters. Object keys are parameter names, and object values are what the keys were substituted with in the path string. This property is unset if there are no parameters. More information on URL templating can be found [here](#njs-files), under the `params` property of context objects.
 		* `methods`: (?Array) All of the allowed HTTP methods you can request the file with through the path's method files. This property is unset if no planted method files exist for the requested path.
 			* Examples: `["POST", "PUT", "PATCH"]`, `["GET"]`
-		* `methodNotAllowed`: (?Boolean) `true` if method files exist but there is no planted file for the requested method, unset if not.
-		* `hasIndex`: (?Boolean) Whether the requested directory has an index. This is unset if the planted file is not a directory.
+		* `methodNotAllowed`: (?boolean) `true` if method files exist but there is no planted file for the requested method, unset if not.
+		* `hasIndex`: (?boolean) Whether the requested directory has an index. This is unset if the planted file is not a directory.
 		* `async func()`: (?Function) The function to call to execute the planted file, or `undefined` if the file is not an NJS file. Only use this if you know what you're doing.
 * `limb(rawPath)`: (Function) Remove a file from the tree. This method will not delete the file on the file system.
-	* `rawPath`: (String) The relative path to the file.
+	* `rawPath`: (string) The relative path to the file.
 		* Required
 		* Examples: Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.
 * `async replant(rawPath)`: (Function) Refresh a planted file in the tree. The file will be automatically limbed, if it is not already, before it is replanted. This method will read from the file system.
 	* `rawPath`: Same as in `cube.limb`.
 * `async load(path, context)`: (Function) Load and execute a planted file. More information can be found [here](#njs-files).
-	* `path`: (String) Any value compatible with the `cube.getRawPath` `path` parameter.
+	* `path`: (string) Any value compatible with the `cube.getRawPath` `path` parameter.
 		* Required
 	* `context`: (Object) The context of the file, if it is an NJS file. This is what `this` will be set to from inside the file's execution. It is recommended that, whenever you use this method from within an NJS file, you set this property to `this` or an object that spreads `this` so that the current context is passed as well.
 		* Optional
@@ -185,14 +185,14 @@ const {serve, html} = require("servecube");
 	* Resolves: (Object) A context object after having been used in the loaded script.
 * `loadCache`: (Object) All of the cached request contexts for caching the `cube.load` method. Only use this if you know what you're doing.
 * `async renderLoad(path, req, res)`: (Function) Load and send a planted file through an HTTP request. Do not use this in any page code, or any case where a context has already been created. If you want to render an error page from inside an NJS file, `load` it manually.
-	* `path`: (String) Any value compatible with the `cube.getRawPath` `path` parameter. This is particularly useful in middleware.
+	* `path`: (string) Any value compatible with the `cube.getRawPath` `path` parameter. This is particularly useful in middleware.
 		* Required
 	* `req`: (Object) An [`express` request object](https://expressjs.com/en/api.html#req).
 		* Required
 	* `res`: (Object) An [`express` response object](https://expressjs.com/en/api.html#res).
 		* Required
 * `async renderError(status, req, res)`: (Function) Load and send an error file through an HTTP request. This is particularly useful in middleware. Do not use this in any page code, or any case where a context has already been created. If you want to render an error page from inside an NJS file, `load` it manually.
-	* `status`: (Number) An HTTP status code, typically of an error.
+	* `status`: (number) An HTTP status code, typically of an error.
 		* Required
 	* `req`: (Object) An [`express` request object](https://expressjs.com/en/api.html#req).
 		* Required
@@ -250,17 +250,17 @@ ServeCube wraps `express`, and uses custom middleware that does a few convenient
 * It sets the [`Allow` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Allow) and the [`Access-Control-Allow-Methods` header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods) correctly.
 * It also sets all of these properties on the `express` request object. (A reference of the `express`-defined properties can be found [here](https://expressjs.com/en/api.html#req).)
 	* `body`: (?Buffer) The request body, parsed by [`bodyParser.raw`](https://github.com/expressjs/body-parser#bodyparserrawoptions). The `bodyParser` middleware is not customizable as it needs to be raw to be able to parse GitHub webhooks. If you want the body to be under a different format, you can parse the buffer into something else, whether under another middleware function or just in your page code.
-	* `subdomain`: (String) The subdomain defined in the URL, but concatenated into one string, periods and all, rather than just an array of period-split values provided by `req.subdomains`. This is an empty string if there is no subdomain in the URL.
+	* `subdomain`: (string) The subdomain defined in the URL, but concatenated into one string, periods and all, rather than just an array of period-split values provided by `req.subdomains`. This is an empty string if there is no subdomain in the URL.
 		* Examples: `""`, `"www"`, `"api"`, `"some.sub.domain"`
-	* `decodedURL`: (String) The request's URI-decoded URL. If there is an error while decoding, [HTTP error 400](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400) is thrown.
+	* `decodedURL`: (string) The request's URI-decoded URL. If there is an error while decoding, [HTTP error 400](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400) is thrown.
 		* Example: `"/a URL path/with spaces in it?wow isn't it cool"`
-	* `dir`: (String) The subdomain directory of the requested file.
+	* `dir`: (string) The subdomain directory of the requested file.
 		* Examples: `"www"`, `"api"`
-	* `queryString`: (?String) Everything after the question mark in the decoded URL, or `undefined` if there is no question mark.
+	* `queryString`: (?string) Everything after the question mark in the decoded URL, or `undefined` if there is no question mark.
 		* Examples: `"v=7wiNUBaK-6M"`, `"magic=real&test=true"`, `"q=awesome&safe=active&ssui=on"`, `"wow isn't it cool`"
-	* `decodedPath`: (String) The decoded URL without the query string and without the question mark.
+	* `decodedPath`: (string) The decoded URL without the query string and without the question mark.
 		* Example: `"/a URL path/with spaces in it"`
-	* `rawPath`: (String) The raw path to the planted file that was requested.
+	* `rawPath`: (string) The raw path to the planted file that was requested.
 		* Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
 
 ServeCube's middleware runs before any of the middleware you define in [`options.middleware`](#async-serveoptions).
@@ -275,7 +275,7 @@ The contents of these files are stored under the tree as asynchronous functions.
 For every NJS file, an object is passed into the script's scope as its `this` value. This object is known as the script's context. A certain context object is automatically passed when the script is called by an HTTP request, but you can also load an NJS file yourself and define your own context object using `cube.load`. A reference can be found [here](#cube).
 
 Context objects use the following properties.
-* `rawPath`: (String) The raw path of the current NJS file.
+* `rawPath`: (string) The raw path of the current NJS file.
 	* Presence: This property **is always predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
 	* Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
 * `done()`: (Function) The method to call when your script is ready to send an HTTP response or resolve a ServeCube load. This method should always be called once, no more and no less, from any NJS file.
@@ -284,17 +284,17 @@ Context objects use the following properties.
 	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not included** in resolved context.
 * `res`: (Object) The `express` response object. A reference can be found [here](https://expressjs.com/en/api.html#res).
 	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not included** in resolved context.
-* `method`: (String) The HTTP request method. Use this instead of any properties or methods of `this.req`.
+* `method`: (string) The HTTP request method. Use this instead of any properties or methods of `this.req`.
 	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context, which allows the loading of method files. This property **is not included** in resolved context.
 	* Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
 * `params`: (Object) An object of the URL template parameters. Object keys are parameter names you defined in the names of the directories and files, and object values are what the client specified in place of those keys in the URL.
 	* Presence: This property **is predefined** by ServeCube if URL templating is used under the file's path. This property **is passed** into loaded context, but in the case of conflicting parameter names the passed properties are overwritten. This property **is not included** in resolved context.
 	* Example: `{username: "CoolGuy43", message: "123"}` This, for example, would be the parameter object if the raw path is "www/users/{username}/messages/{message}/contents/GET.json.njs" and the client requested a URL with the path "/users/CoolGuy43/messages/123/contents".
-* `status`: (Number) The HTTP response status code. This property also applies to redirection status. Use this instead of any properties or methods of `this.res`.
+* `status`: (number) The HTTP response status code. This property also applies to redirection status. Use this instead of any properties or methods of `this.res`.
 	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
 	* Optional
 	* Default: `200`, `201` if it is a `POST` request, or `307` if the `redirect` option is defined
-* `redirect`: (String) The URL to redirect the client to. Use this instead of any properties or methods of `this.res`.
+* `redirect`: (string) The URL to redirect the client to. Use this instead of any properties or methods of `this.res`.
 	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
 	* Optional
 	* Examples: `"/test/page"`, `"https://example.com/test/page"`
@@ -303,13 +303,13 @@ Context objects use the following properties.
 	* Required
 	* Default: `""`
 	* Examples: `"Hello, world!"`, `{cool: true}`, `Buffer.from("whatever")`
-* `cache(context)`: (Function) A function used for server-side load caching. If defined, the script's resolved context is cached by ServeCube (under `cube.loadCache`) and used whenever the file is loaded, whether by HTTP request or not. This function is called whenever it is necessary for ServeCube to retrieve or store such a cached context, as cached contexts are identified by the string returned from this function, known as a cache index. This function is similar in nature to the [HTTP `Vary` response header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary), but data is cached on the server rather than the client, and cache identification may vary based on more than just HTTP headers. Cache indexing is per NJS file.
+* `cache(context)`: (Function | boolean) A function used for server-side load caching. If defined, the script's resolved context is cached by ServeCube (under `cube.loadCache`) and used whenever the file is loaded, whether by HTTP request or not. This function is called whenever it is necessary for ServeCube to retrieve or store such a cached context, as cached contexts are identified by the string returned by this function, known as a cache index. This function is similar in nature to the [HTTP `Vary` response header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary), but data is cached on the server rather than the client, and cache identification may vary based on more than just HTTP headers. This may also be set to `true` as an alias of `() => ""`. Cache indexing is per NJS file.
 	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
 	* Optional
 	* `context`: (Object) The predefined context object.
-	* Returns: (String) The cache index.
+	* Returns: (string) The cache index.
 	* Examples:
-		* `() => ""` This would not vary cached contexts for that file.
+		* `true` This would cached the file without any variance.
 		* `context => context.req.queryString` This would vary cached contexts based on the URL's query string.
 		* `context => context.req.get("User-Agent")` This would vary cached contexts based on the `User-Agent` header.
 		* ``context => `${context.req.get("Content-Type")} ${encodeURIComponent(context.params.user)} ${encodeURIComponent(context.params.message)}` `` This would vary cached contexts based on the `Content-Type` header, the `user` URL parameter, and the `message` URL parameter.
