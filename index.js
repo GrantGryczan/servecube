@@ -68,21 +68,20 @@ const minifyHTMLInJS = code => {
 	return code.join("");
 };
 const ServeCube = module.exports = {
-	html: function() {
-		let string = arguments[0][0];
-		const exps = arguments.length-1;
-		for(let i = 0; i < exps; i++) {
-			let code = String(arguments[i+1]);
-			const expIndex = htmlExps.indexOf(arguments[0][i].slice(-1));
+	html: (strs, ...exps) => {
+		let str = strs[0];
+		for(let i = 0; i < exps.length; i++) {
+			let code = String(exps[i]);
+			const expIndex = htmlExps.indexOf(strs[i].slice(-1));
 			if(expIndex !== -1) {
-				string = string.slice(0, -1);
+				str = str.slice(0, -1);
 				for(let j = expIndex; j < htmlReplacements.length; j++) {
 					code = code.replace(...htmlReplacements[j]);
 				}
 			}
-			string += code + arguments[0][i+1];
+			str += code + strs[i+1];
 		}
-		return string;
+		return str;
 	},
 	serve: async options => {
 		const cube = {};
