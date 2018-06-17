@@ -55,15 +55,15 @@ const subdomainValueTest = /^.*[.\/]$/;
 const htmlExps = ["$", "&"];
 const htmlReplacements = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
 const urlReplacements = [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]];
-const byFirstItems = v => v[0];
-const byNames = v => v.name;
-const byNoLastItems = v => v.slice(0, -1);
-const byUniqueDirectories = (v, i, t) => v.endsWith("/") && t.indexOf(v) === i;
+const byFirstItems = parentEntry => parentEntry[0];
+const byNames = param => param.name;
+const byNoLastItems = dir => dir.slice(0, -1);
+const byUniqueDirectories = (dir, i, dirs) => dir.endsWith("/") && dirs.indexOf(dir) === i;
 const minifyHTML = code => code.replace(brs, "").replace(whitespace, " ");
 const minifyHTMLInJS = code => {
 	code = code.split(htmlTest);
-	for(let j = 1; j < code.length; j += 2) {
-		code[j] = minifyHTML(code[j]);
+	for(let i = 1; i < code.length; i += 2) {
+		code[i] = minifyHTML(code[i]);
 	}
 	return code.join("");
 };
@@ -79,7 +79,7 @@ const ServeCube = module.exports = {
 					code = code.replace(...htmlReplacements[j]);
 				}
 			}
-			str += code + strs[i+1];
+			str += code + strs[i + 1];
 		}
 		return str;
 	},
@@ -211,7 +211,7 @@ const ServeCube = module.exports = {
 									output.params = {};
 								}
 								for(let j = 0; j < parent.children[i].params.length; j++) {
-									output.params[parent.children[i].params[j]] = matches[j+1];
+									output.params[parent.children[i].params[j]] = matches[j + 1];
 								}
 								break;
 							}
@@ -272,9 +272,9 @@ const ServeCube = module.exports = {
 					if(!parent.methods) {
 						parent.methods = {};
 					}
-					for(const v of allMethods) {
-						if(!parent.methods[v]) {
-							parent.methods[v] = child;
+					for(const method of allMethods) {
+						if(!parent.methods[method]) {
+							parent.methods[method] = child;
 						}
 					}
 				} else {
@@ -312,13 +312,13 @@ const ServeCube = module.exports = {
 		}
 		const plant = async (parent, path) => {
 			const children = await fs.readdir(options.basePath + path);
-			for(const v of children) {
-				const childPath = `${path}/${v}`;
+			for(const filename of children) {
+				const childPath = `${path}/${filename}`;
 				const fullPath = options.basePath + childPath;
 				const isDir = (await fs.stat(fullPath)).isDirectory();
-				await plantChild(parent, v, isDir, fullPath);
+				await plantChild(parent, filename, isDir, fullPath);
 				if(isDir) {
-					await plant(parent.children[v], childPath);
+					await plant(parent.children[filename], childPath);
 				}
 			}
 		};
@@ -393,7 +393,7 @@ const ServeCube = module.exports = {
 			} else if((await fs.stat(fullPath)).isDirectory()) {
 				throw new ServeCubeError(`The file \`${fullPath}\` is a directory.`);
 			}
-			while(paths.length-1) {
+			while(paths.length - 1) {
 				const child = paths.shift();
 				await plantChild(parent, child, true);
 				parent = parent.children[child];
@@ -404,10 +404,10 @@ const ServeCube = module.exports = {
 		if(options.errorDir) {
 			dirs.push(`${options.errorDir}/`);
 		}
-		for(const v of dirs = dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
-			await plant(tree[v] = {
+		for(const dir of dirs = dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
+			await plant(tree[dir] = {
 				children: {}
-			}, v);
+			}, dir);
 		}
 		const loadCache = cube.loadCache = {};
 		const load = cube.load = async (path, context) => {
@@ -445,9 +445,9 @@ const ServeCube = module.exports = {
 				} : await new Promise(async (resolve, reject) => {
 					let resolution;
 					if(options.loadStart) {
-						for(const v of options.loadStart) {
-							if(v instanceof Function) {
-								resolution = v(context);
+						for(const func of options.loadStart) {
+							if(func instanceof Function) {
+								resolution = func(context);
 								if(resolution instanceof Promise) {
 									resolution = await resolution;
 								}
@@ -459,11 +459,11 @@ const ServeCube = module.exports = {
 					}
 					context.done = async () => {
 						if(options.loadEnd) {
-							for(const v of options.loadEnd) {
-								if(v instanceof AsyncFunction) {
-									await v(context);
-								} else if(v instanceof Function) {
-									v(context);
+							for(const func of options.loadEnd) {
+								if(func instanceof AsyncFunction) {
+									await func(context);
+								} else if(func instanceof Function) {
+									func(context);
 								}
 							}
 						}
@@ -543,9 +543,9 @@ const ServeCube = module.exports = {
 		}));
 		app.disable("X-Powered-By");
 		if(options.preMiddleware instanceof Array) {
-			for(const v of options.preMiddleware) {
-				if(v instanceof Function) {
-					app.use(v);
+			for(const func of options.preMiddleware) {
+				if(func instanceof Function) {
+					app.use(func);
 				}
 			}
 		}
@@ -581,21 +581,21 @@ const ServeCube = module.exports = {
 						return;
 					}
 					const payload = JSON.parse(req.body);
-					const branch = payload.ref.slice(payload.ref.lastIndexOf("/")+1);
+					const branch = payload.ref.slice(payload.ref.lastIndexOf("/") + 1);
 					if(branch !== "master") {
 						res.send();
 						return;
 					}
 					const files = {};
-					for(const v of payload.commits) {
-						for(const w of v.removed) {
-							files[w] = 1;
+					for(const commit of payload.commits) {
+						for(const removed of commit.removed) {
+							files[removed] = 1;
 						}
-						for(const w of v.modified) {
-							files[w] = 2;
+						for(const modified of commit.modified) {
+							files[modified] = 2;
 						}
-						for(const w of v.added) {
-							files[w] = 3;
+						for(const added of commit.added) {
+							files[added] = 3;
 						}
 					}
 					for(const i of Object.keys(files)) {
@@ -615,8 +615,8 @@ const ServeCube = module.exports = {
 								}
 							}
 							let index = i.length;
-							while((index = i.lastIndexOf("/", index)-1) !== -2) {
-								const path = options.basePath + i.slice(0, index+1);
+							while((index = i.lastIndexOf("/", index) - 1) !== -2) {
+								const path = options.basePath + i.slice(0, index + 1);
 								if(await fs.exists(path)) {
 									try {
 										await fs.rmdir(path);
@@ -635,8 +635,8 @@ const ServeCube = module.exports = {
 							}
 							let contents = Buffer.from(file.content, file.encoding);
 							let index = 0;
-							while(index = i.indexOf("/", index)+1) {
-								const nextPath = options.basePath + i.slice(0, index-1);
+							while(index = i.indexOf("/", index) + 1) {
+								const nextPath = options.basePath + i.slice(0, index - 1);
 								if(!await fs.exists(nextPath)) {
 									await fs.mkdir(nextPath);
 								}
@@ -647,9 +647,9 @@ const ServeCube = module.exports = {
 								contents = minifyHTML(String(contents));
 							} else {
 								let publicDir = false;
-								for(const v of Object.values(dirs)) {
-									if(i.startsWith(v)) {
-										publicDir = v;
+								for(const dir of Object.values(dirs)) {
+									if(i.startsWith(dir)) {
+										publicDir = dir;
 										break;
 									}
 								}
@@ -658,7 +658,7 @@ const ServeCube = module.exports = {
 									if(type === "application/javascript") {
 										const originalContents = minifyHTMLInJS(String(contents));
 										await fs.writeFile(`${fullPath}.source`, originalContents);
-										const filenameIndex = i.lastIndexOf("/")+1;
+										const filenameIndex = i.lastIndexOf("/") + 1;
 										const filename = i.slice(filenameIndex);
 										const compiled = babel.transform(originalContents, {
 											ast: false,
@@ -700,7 +700,7 @@ const ServeCube = module.exports = {
 										const output = cleaner.minify(String(result.css), String(result.map));
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
-										const filenameIndex = i.lastIndexOf("/")+1;
+										const filenameIndex = i.lastIndexOf("/") + 1;
 										sourceMap.sourceRoot = i.slice(publicDir.length, filenameIndex);
 										sourceMap.sources = [`${i.slice(filenameIndex)}.source`];
 										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
@@ -716,7 +716,7 @@ const ServeCube = module.exports = {
 						}
 					}
 					res.send();
-					if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length+1)]) {
+					if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length + 1)]) {
 						if(files["package.json"]) {
 							childProcess.spawnSync("npm", ["install"]);
 						}
@@ -736,12 +736,12 @@ const ServeCube = module.exports = {
 			} else {
 				req.dir = subdomain.slice(0, -1);
 			}
-			const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?"))+1;
+			const queryIndex = (req.queryIndex = req.decodedURL.indexOf("?")) + 1;
 			req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex);
 			req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
 			let url = req.decodedPath;
-			for(const v of urlReplacements) {
-				url = url.replace(...v);
+			for(const args of urlReplacements) {
+				url = url.replace(...args);
 			}
 			if(queryIndex) {
 				url += `?${req.queryString}`;
@@ -786,9 +786,9 @@ const ServeCube = module.exports = {
 			}
 		});
 		if(options.middleware instanceof Array) {
-			for(const v of options.middleware) {
-				if(v instanceof Function) {
-					app.use(v);
+			for(const func of options.middleware) {
+				if(func instanceof Function) {
+					app.use(func);
 				}
 			}
 		}
@@ -801,7 +801,7 @@ const ServeCube = module.exports = {
 					renderLoad(req.dir + req.decodedPath, req, res);
 				} else if(req.method === "GET") {
 					if(!res.get("Cache-Control")) {
-						res.set("Cache-Control", "max-age=86400");
+						res.set("Cache-Control", req.rawPath.endsWith(".map") || req.rawPath.endsWith(".source") ? "no-cache" : "max-age=86400");
 					}
 					const type = mime.getType(req.rawPath);
 					if(type) {
