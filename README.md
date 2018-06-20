@@ -140,10 +140,10 @@ const {serve, html} = require("servecube");
 	* `middleware`: (Array) An array of `express` middleware functions to run after ServeCube's middleware.
 		* Optional
 		* Example: `[require("cookie-parser")()]`
-	* `loadStart`: (Array) An array of functions to run before a file is loaded. Each function is called with one parameter: the context of the load. You may read and/or alter the context object, and it will be passed into the page when your function has been evaluated (or if a promise it returns is resolved). Returning or resolving `false` will cause the page load to be forcibly completed, skipping the page in addition to all following `loadStart` functions. More information on ServeCube contexts can be found [here](#njs-files).
+	* `loadStart`: (Array) An array of functions to run before a file is loaded. Each function is called with one parameter: the context of the load. You may read and/or alter the context object, and it will be passed into the page when your function has been evaluated (or if a promise it returns is resolved). Returning or resolving `false` will cause the page load to be forcibly completed, skipping the page in addition to all following `loadStart` functions. To detect whether a context is the first of a page, you can test whether its `depth` property is `1`. More information on ServeCube contexts can be found [here](#njs-files).
 		* Optional
 		* Example: ``[context => context.test = 0]``
-	* `loadEnd`: (Array) An array of functions to run after `context.done` has been called by a loaded page. Each function is called with one parameter: the context of the load. You may read and/or alter the context object, and it will be passed as the resolved context when your function has been evaluated (or if a promise it returns is resolved). More information on ServeCube contexts can be found [here](#njs-files).
+	* `loadEnd`: (Array) An array of functions to run after `context.done` has been called by a loaded page. Each function is called with one parameter: the context of the load. You may read and/or alter the context object, and it will be passed as the resolved context when your function has been evaluated (or if a promise it returns is resolved). To detect whether a context is the first of a page, you can test whether its `depth` property is `1`. More information on ServeCube contexts can be found [here](#njs-files).
 		* Optional
 		* Example: ``[context => context.test !== 0 && console.log(`The \`context.test\` value was changed by \`${context.rawPath}\`!`)]``
 * Resolves: ([Cube](#cube)) A cube web server.
@@ -303,6 +303,9 @@ Context objects use the following properties.
 	* Required
 	* Default: `""`
 	* Examples: `"Hello, world!"`, `{cool: true}`, `Buffer.from("whatever")`
+* `depth`: (number) The depth of the current context. This value starts at 1 per request. 1 is added whenever the context is passed to another load, and 1 is subtracted after each load is complete.
+	* Presence: This property **is always predefined** by ServeCube. This property **is passed** into loaded context. This property **is included** in resolved context.
+	* Read-only
 * `cache(context)`: (Function | boolean) A function used for server-side load caching. If defined, the script's resolved context is cached by ServeCube (under `cube.loadCache`) and used whenever the file is loaded, whether by HTTP request or not. This function is called whenever it is necessary for ServeCube to retrieve or store such a cached context, as cached contexts are identified by the string returned by this function, known as a cache index. This function is similar in nature to the [HTTP `Vary` response header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary), but data is cached on the server rather than the client, and cache identification may vary based on more than just HTTP headers. This may also be set to `true` as an alias of `() => ""`. Cache indexing is per NJS file.
 	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
 	* Optional

@@ -67,6 +67,18 @@ const minifyHTMLInJS = code => {
 	}
 	return code.join("");
 };
+const _depth = Symbol("depth");
+class ServeCubeContext {
+	constructor(obj) {
+		if(obj instanceof Object) {
+			Object.assign(this, obj);
+		}
+		this[_depth] = typeof this.depth === "number" ? this.depth : 0;
+	}
+	get depth() {
+		return this[_depth];
+	}
+}
 const ServeCube = module.exports = {
 	html: (strs, ...exps) => {
 		let str = strs[0];
@@ -83,6 +95,7 @@ const ServeCube = module.exports = {
 		}
 		return str;
 	},
+	ServeCubeContext, 
 	serve: async options => {
 		const cube = {};
 		if(!(options instanceof Object)) {
@@ -421,9 +434,9 @@ const ServeCube = module.exports = {
 			const fullPath = options.basePath + rawPath;
 			if(func) {
 				if(context) {
-					context = {
+					context = new ServeCubeContext({
 						...context
-					};
+					});
 					// Delete properties which may not be passed into loaded context.
 					delete context.done;
 					delete context.value;
@@ -431,12 +444,13 @@ const ServeCube = module.exports = {
 					delete context.redirect;
 					delete context.cache;
 				} else {
-					context = {};
+					context = new ServeCubeContext();
 				}
 				Object.assign(context, {
 					rawPath,
 					params
 				});
+				context[_depth]++;
 				context.value = "";
 				let cacheIndex;
 				return loadCache[context.rawPath] && loadCache[context.rawPath][cacheIndex = `#${loadCache[context.rawPath].vary(context)}`] ? {
@@ -470,6 +484,7 @@ const ServeCube = module.exports = {
 						const returnedContext = {
 							...context
 						};
+						context[_depth]--;
 						// Delete properties which are not included in resolved context.
 						delete returnedContext.rawPath;
 						delete returnedContext.done;
@@ -511,11 +526,11 @@ const ServeCube = module.exports = {
 			if(!res.get("Content-Type")) {
 				res.set("Content-Type", "text/html");
 			}
-			const context = {
+			const context = new ServeCubeContext({
 				req,
 				res,
 				method: req.method
-			};
+			});
 			const result = await load(path, context);
 			if(result.redirect) {
 				res.redirect(result.status || 307, result.redirect);
