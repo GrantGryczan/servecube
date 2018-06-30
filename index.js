@@ -627,6 +627,10 @@ const ServeCube = module.exports = {
 									if(await fs.exists(mapPath)) {
 										await fs.unlink(mapPath);
 									}
+									const sourcePath = `${fullPath}.source`;
+									if(await fs.exists(sourcePath)) {
+										await fs.unlink(sourcePath);
+									}
 								}
 							}
 							let index = i.length;
