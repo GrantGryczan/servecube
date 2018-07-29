@@ -101,6 +101,9 @@ const {serve, html} = require("servecube");
 	* `errorDir`: (string) A relative path to your error directory.
 		* Optional
 		* Examples: `"error"`, `"err"`
+	* `loadDirs`: (Array) Any relative paths to be planted in addition to those specified in the subdomains and error directory.
+		* Optional
+		* Example: `["load"]`
 	* `httpPort`: (number) The port number listened to for HTTP traffic.
 		* Optional
 		* Default: `8080`

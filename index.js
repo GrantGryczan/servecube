@@ -59,6 +59,8 @@ const byFirstItems = parentEntry => parentEntry[0];
 const byNames = param => param.name;
 const byNoLastItems = dir => dir.slice(0, -1);
 const byUniqueDirectories = (dir, i, dirs) => dir.endsWith("/") && dirs.indexOf(dir) === i;
+const slashesOnEndsTest = /^\/*(.*?)\/*$/;
+const cleanDir = value => typeof value === "string" ? value.replace(slashesOnEndsTest, "$1/") : undefined;
 const minifyHTML = code => code.replace(brs, "").replace(whitespace, " ");
 const minifyHTMLInJS = code => {
 	code = code.split(htmlTest);
@@ -114,14 +116,9 @@ const ServeCube = module.exports = {
 			options.basePath = `${options.basePath}/`;
 		}
 		options.basePath = options.basePath.replace(backslashes, "/");
-		if(typeof options.errorDir === "string") {
-			if(options.errorDir.startsWith("/")) {
-				options.errorDir = options.errorDir.slice(1);
-			} else if(options.errorDir.endsWith("/")) {
-				options.errorDir = options.errorDir.slice(0, -1);
-			}
-		} else {
-			options.errorDir = undefined;
+		options.errorDir = cleanDir(options.errorDir);
+		if(options.loadDirs) {
+			options.loadDirs = options.loadDirs.map(cleanDir);
 		}
 		if(typeof options.httpPort !== "number") {
 			options.httpPort = 8080;
@@ -413,9 +410,12 @@ const ServeCube = module.exports = {
 			}
 			await plantChild(parent, paths[0], false, fullPath);
 		};
-		let dirs = [...Object.values(options.subdomains)];
+		let dirs = Object.values(options.subdomains);
 		if(options.errorDir) {
-			dirs.push(`${options.errorDir}/`);
+			dirs.push(options.errorDir);
+		}
+		if(options.loadDirs) {
+			dirs.push(...options.loadDirs);
 		}
 		for(const dir of dirs = dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
 			await plant(tree[dir] = {
@@ -540,7 +540,7 @@ const ServeCube = module.exports = {
 		};
 		const renderError = cube.renderError = async (status, req, res) => {
 			if(options.errorDir) {
-				const path = `${options.errorDir}/${status}`;
+				const path = options.errorDir + status;
 				const {rawPath} = await getRawPath(path, req.method);
 				if(rawPath) {
 					res.status(status);
