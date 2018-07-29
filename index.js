@@ -38,7 +38,7 @@ const brs = /\n/g;
 const whitespace = /\s+/g;
 const escapeRegExpTest = /([\\()[|{^$.+*?])/g;
 const escapeRegExp = str => str.replace(escapeRegExpTest, "\\$1");
-const pageExtExp = "\.(?:.*\.)?(?:[Nn][Jj][Ss]|[Hh][Tt][Mm][Ll]?)$";
+const pageExtExp = "\\.(?:.*\\.)?(?:[Nn][Jj][Ss]|[Hh][Tt][Mm][Ll]?)$";
 const njsExtTest = /\.njs$/i;
 const htmlExtTest = /\.html?$/i;
 const pageExtTest = /\.(?:njs|html?)$/i;
@@ -196,6 +196,12 @@ const ServeCube = module.exports = {
 		const getRawPath = cube.getRawPath = async (path, method) => {
 			method = typeof method === "string" ? method.toUpperCase() : "GET";
 			const {dir, paths} = getPaths(path);
+			const lastPath = paths[paths.length - 1];
+			if(allMethods.includes(lastPath) && method !== lastPath) {
+				return {
+					forbidden: true
+				};
+			}
 			const output = {
 				rawPath: dir
 			};
@@ -206,7 +212,7 @@ const ServeCube = module.exports = {
 					if(parent.index) {
 						child = parent.index;
 					} else {
-						output.rawPath = undefined;
+						delete output.rawPath;
 						break;
 					}
 				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
@@ -240,7 +246,7 @@ const ServeCube = module.exports = {
 								child = (parent = parent.children[child]).methods[method];
 							} else {
 								output.methodNotAllowed = true;
-								output.rawPath = undefined;
+								delete output.rawPath;
 								break;
 							}
 						}
@@ -256,19 +262,19 @@ const ServeCube = module.exports = {
 					parent = parent.children[child];
 					paths.shift();
 				} else {
-					output.rawPath = undefined;
+					delete output.rawPath;
 					break;
 				}
 			}
 			if(paths.length !== 1) {
-				output.rawPath = undefined;
+				delete output.rawPath;
 			}
 			if(output.rawPath) {
 				const fullPath = options.basePath + output.rawPath;
 				if(!await fs.exists(fullPath)) {
 					throw new ServeCubeError(`The file \`${fullPath}\` is planted but was not found.`);
 				} else if((await fs.stat(fullPath)).isDirectory()) {
-					output.rawPath = undefined;
+					delete output.rawPath;
 				}
 			}
 			return output;
@@ -778,7 +784,7 @@ const ServeCube = module.exports = {
 				res.redirect(308, redirect);
 				return;
 			} else {
-				const {rawPath, hasIndex, methods, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
+				const {rawPath, hasIndex, methods, forbidden, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
 				let allowedMethods = methods ? methods.join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
 				if(allowedMethods) {
 					allowedMethods = `OPTIONS, ${allowedMethods}`;
@@ -795,6 +801,9 @@ const ServeCube = module.exports = {
 				if(!rawPath) {
 					if(hasIndex) {
 						res.redirect(308, req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`);
+						return;
+					} else if(forbidden) {
+						renderError(403, req, res);
 						return;
 					} else if(methodNotAllowed) {
 						renderError(405, req, res);
