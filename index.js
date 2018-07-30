@@ -430,8 +430,8 @@ const ServeCube = module.exports = {
 		}
 		const loadCache = cube.loadCache = {};
 		const load = cube.load = async (path, context) => {
-			if(context && !(context instanceof Object)) {
-				throw new ServeCubeError("The `context` parameter must be an object.");
+			if(!(context instanceof Object)) {
+				context = {};
 			}
 			const {rawPath, params, func} = await getRawPath(path, context.method);
 			if(!rawPath) {
