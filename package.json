@@ -21,11 +21,11 @@
 		"express": "^4.16.3",
 		"fs-extra": "^5.0.0",
 		"mime": "^2.3.1",
-		"node-sass": "^4.9.0",
+		"node-sass": "^4.9.2",
 		"path-to-regexp": "^2.2.1",
 		"request": "^2.87.0",
 		"request-promise-native": "^1.0.5",
-		"uglify-js": "^3.4.0"
+		"uglify-js": "^3.4.6"
 	},
 	"devDependencies": {}
 }
