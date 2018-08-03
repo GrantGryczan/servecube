@@ -678,9 +678,10 @@ const ServeCube = module.exports = {
 										break;
 									}
 								}
+								const type = mime.getType(i);
+								const typeIsJS = type === "application/javascript";
 								if(publicDir) {
-									const type = mime.getType(i);
-									if(type === "application/javascript") {
+									if(typeIsJS) {
 										const originalContents = minifyHTMLInJS(String(contents));
 										await fs.writeFile(`${fullPath}.source`, originalContents);
 										const filenameIndex = i.lastIndexOf("/") + 1;
@@ -732,6 +733,8 @@ const ServeCube = module.exports = {
 										await replant(`${i}.source`);
 										await replant(`${i}.map`);
 									}
+								} else if(typeIsJS) {
+									contents = minifyHTMLInJS(String(contents));
 								}
 							}
 							await fs.writeFile(fullPath, contents);
