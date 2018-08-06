@@ -173,6 +173,9 @@ const ServeCube = module.exports = {
 		if(typeof options.githubToken === "string") {
 			requestOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
+		if(!(options.babelOptions instanceof Object)) {
+			options.babelOptions = {};
+		}
 		const originTest = new RegExp(`^https?://(?:.+\\.)?${escapeRegExp(options.domain)}$`);
 		const app = cube.app = express();
 		app.set("trust proxy", true);
@@ -694,7 +697,8 @@ const ServeCube = module.exports = {
 											minified: true,
 											presets: ["env"],
 											sourceMaps: true,
-											sourceType: "script"
+											sourceType: "script",
+											...options.babelOptions
 										});
 										const result = UglifyJS.minify(compiled.code, {
 											parse: {

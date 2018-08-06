@@ -149,6 +149,10 @@ const {serve, html} = require("servecube");
 	* `loadEnd`: (Array) An array of functions to run after `context.done` has been called by a loaded page. Each function is called with one parameter: the context of the load. You may read and/or alter the context object, and it will be passed as the resolved context when your function has been evaluated (or if a promise it returns is resolved). To detect whether a context is the first of a page, you can test whether its `depth` property is `1`. More information on ServeCube contexts can be found [here](#njs-files).
 		* Optional
 		* Example: ``[context => context.test !== 0 && console.log(`The \`context.test\` value was changed by \`${context.rawPath}\`!`)]``
+	* `babelOptions`: (Object) Options to pass into `babel.transform`.
+		* Optional
+		* Default: `{}`
+		* Example: `{plugins: ["iife-wrap"]}`
 * Resolves: ([Cube](#cube)) A cube web server.
 
 ### Cube
