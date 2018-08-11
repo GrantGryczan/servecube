@@ -17,15 +17,15 @@
 		"babel-core": "^6.26.3",
 		"babel-preset-env": "^1.7.0",
 		"body-parser": "^1.18.3",
-		"clean-css": "^4.1.11",
+		"clean-css": "^4.2.1",
 		"express": "^4.16.3",
 		"fs-extra": "^5.0.0",
 		"mime": "^2.3.1",
-		"node-sass": "^4.9.2",
+		"node-sass": "^4.9.3",
 		"path-to-regexp": "^2.2.1",
-		"request": "^2.87.0",
+		"request": "^2.88.0",
 		"request-promise-native": "^1.0.5",
-		"uglify-js": "^3.4.6"
+		"uglify-js": "^3.4.7"
 	},
 	"devDependencies": {}
 }
