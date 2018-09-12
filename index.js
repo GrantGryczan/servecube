@@ -52,7 +52,6 @@ const templateTest = /\{(\w+)}/g;
 const htmlTest = /(html`(?:(?:\${(?:`(?:.*?|\n)`|"(?:.*?|\n)"|'(?:.*?|\n)'|.|\n)*?})|.|\n)*?`)/g;
 const subdomainTest = /^(?:\*|[0-9a-z.]*)$/i;
 const subdomainValueTest = /^.*[.\/]$/;
-const htmlExps = ["$", "&"];
 const htmlReplacements = [[/&/g, "&amp;"], [/</g, "&lt;"], [/>/g, "&gt;"], [/"/g, "&quot;"], [/'/g, "&#39;"], [/`/g, "&#96;"]];
 const urlReplacements = [[/\/\.{1,2}\//g, "/"], [/[\\\/]+/g, "/"], [pageExtTest, ""], [/\/index$/i, "/"]];
 const byFirstItems = parentEntry => parentEntry[0];
@@ -81,22 +80,28 @@ class ServeCubeContext {
 		return this[_depth];
 	}
 }
-const ServeCube = module.exports = {
-	html: (strs, ...exps) => {
-		let str = strs[0];
-		for(let i = 0; i < exps.length; i++) {
-			let code = String(exps[i]);
-			const expIndex = htmlExps.indexOf(strs[i].slice(-1));
-			if(expIndex !== -1) {
-				str = str.slice(0, -1);
-				for(let j = expIndex; j < htmlReplacements.length; j++) {
-					code = code.replace(...htmlReplacements[j]);
-				}
+const html = (strs, ...exps) => {
+	let str = strs[0];
+	for(let i = 0; i < exps.length; i++) {
+		let code = String(exps[i]);
+		if(strs[i].slice(-1) === "$") {
+			str = str.slice(0, -1);
+			for(let j = expIndex; j < htmlReplacements.length; j++) {
+				code = code.replace(...htmlReplacements[j]);
 			}
-			str += code + strs[i + 1];
 		}
-		return str;
-	},
+		str += code + strs[i + 1];
+	}
+	return str;
+};
+html.escape = code => {
+	for(const htmlReplacement of htmlReplacements) {
+		code = code.replace(...htmlReplacement);
+	}
+	return code;
+};
+const ServeCube = module.exports = {
+	html,
 	ServeCubeContext, 
 	serve: async options => {
 		const cube = {};

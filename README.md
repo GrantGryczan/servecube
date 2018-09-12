@@ -87,7 +87,7 @@ const {serve, html} = require("servecube");
 ### async serve(options)
 (Function) Initiate your cube web server.
 * `options`: (Object) The cube's options.
-	* `eval(string)`: (Function) This should always be set to `v => eval(v)` so ServeCube is able to evaluate your NJS files under the correct scope.
+	* `eval(string)`: (Function) This should almost always be set to `v => eval(v)` so ServeCube is able to evaluate your NJS files under the correct scope.
 		* Optional but recommended
 		* Default: `eval`
 		* Example: `v => eval(v)`
@@ -208,35 +208,38 @@ const {serve, html} = require("servecube");
 
 ### html\`code\`
 (Function) A tag function for HTML-based template literals. It is highly recommended that, whenever you are writing HTML inside of an NJS file, you always use this function.
-* `code`: (template literal) A string of HTML. It does not have to be complete, meaning that you can open a tag in one string and close it in another. You can also add a second dollar sign before any expression, like `` `$${whatever}` ``, to sanitize it, which escapes the `&`, `<`, `>`, `"`, `'`, and `` ` `` characters in the expression into HTML entities. To avoid escaping ampersands, use an ampersand before the expression instead of a dollar sign, like `` `&${whatever}` ``. If you want to put an actual dollar sign or ampersand character before an expression, just move the character into the expression, like `` `${"$" + whatever}` ``, `` `${`$${whatever}`}` ``, or whatever your personal preference is. Dollar signs and ampersands are not special here if they're inside expressions, or if they aren't directly before an expression. A dollar sign means to escape everything, while an ampersand means to keep ampersands. Also, keep in mind that, if you are using GitHub integration, any tagged HTML code in your JS and NJS files will be automatically minified by ServeCube (though this function is not defined by default in regular JS files).
+* `code`: (template literal) A string of HTML. It does not have to be proper or complete. You can also add a second dollar sign before any expression, like `` `$${whatever}` ``, to sanitize it, which escapes the `&`, `<`, `>`, `"`, `'`, and `` ` `` characters in the expression into HTML entities. If you want to put an actual dollar sign character before an expression, just move the character into the expression, like `` `${"$" + whatever}` ``, `` `${`$${whatever}`}` ``, or whatever your personal preference is. Dollar signs are not special here if they're inside expressions, or if they aren't directly before an expression. Also, keep in mind that, if you are using GitHub integration, any tagged HTML code in your JS and NJS files will be automatically minified by ServeCube (though this `html` function is not defined by default in regular JS files).
+* Returns: (string) The formatted HTML code.
 * Examples:
 ```js
 this.value += html`
-				<div>
-						You have <b>${cakes}</b> cakes and <b>${pies}</b> pies remaining.<br>
-						Here, have some numbers: <span>`;
+	<div>
+		You have <b>${cakes}</b> cakes and <b>${pies}</b> pies remaining.<br>
+		Here, have some numbers: <span>`;
 for(let i = 1; i <= 10; i++) {
-		this.value += html` ${i}`;
+	this.value += html` ${i}`;
 }
 this.value += html`</span>
-				</div><br>` + (firstVisit ? html`
-				Welcome to my garbage website, $${this.req.session.username}!<br>
-				If you used an HTML entity code in your username, it will display here exactly
-						as you set it, escaped ampersands and all, thanks to the double dollar signs.<br>
-				The same applies to whatever you set as the link to
-						<a href="$${this.req.session.site}">your website</a>.<br>` : "") + html`
-				<br>
-				$${this.req.session.username}'s cool profile description, where you're allowed
-						to enter HTML entities but not HTML tags,
-						thanks to the ampersand before the expression:<br>
-				<div id="desc">&${coolDesc}</div>
-		Allow this kind of thing on your website at your own risk!`;
-const randomAmountOfMoney = Math.ceil(Math.random()*100);
+	</div><br>` + (firstVisit ? html`
+	Welcome to my garbage website, $${this.req.session.username}!<br>
+	If you used special HTML characters in your username, it will display here exactly
+		as you set it, escaped entities and all, thanks to the double dollar signs.<br>
+	The same applies to whatever you set as the link to
+		<a href="$${this.req.session.site}">your website</a>.<br>` : "") + html`
+	<br>
+	$${this.req.session.username}'s cool HTML-free profile description:<br>
+	<div id="desc">$${coolDesc}</div>`;
+const randomAmountOfMoney = Math.ceil(Math.random() * 100);
 this.value += html`
 				Oh, and here is some random amount of money: ${`$${randomAmountOfMoney}`}.<br>
 				Feel free to mess with that amount here, just for fun.<br>
 				$<input type="number" value="${randomAmountOfMoney}" min="0">`;
 ```
+
+### html.escape(code)
+(Function) A method which can be used to escape HTML. Always try to instead use the `html` tag function above whenever practical.
+* `code`: (string) A string of HTML. It does not have to be proper or complete.
+* Returns: (string) The escaped HTML code.
 
 ## Middleware
 ServeCube wraps `express`, and uses custom middleware that does a few convenient things.
