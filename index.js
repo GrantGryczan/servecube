@@ -93,6 +93,9 @@ const html = (strs, ...exps) => {
 	return str;
 };
 html.escape = code => {
+	if(typeof code !== "string") {
+		throw new MiroError("The `code` parameter must be a string.");
+	}
 	for(const htmlReplacement of htmlReplacements) {
 		code = code.replace(...htmlReplacement);
 	}
