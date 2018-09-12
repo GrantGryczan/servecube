@@ -86,9 +86,7 @@ const html = (strs, ...exps) => {
 		let code = String(exps[i]);
 		if(strs[i].slice(-1) === "$") {
 			str = str.slice(0, -1);
-			for(let j = expIndex; j < htmlReplacements.length; j++) {
-				code = code.replace(...htmlReplacements[j]);
-			}
+			code = html.escape(code);
 		}
 		str += code + strs[i + 1];
 	}
