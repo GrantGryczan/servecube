@@ -639,12 +639,16 @@ const ServeCube = module.exports = {
 								await fs.unlink(fullPath);
 								const type = mime.getType(committed);
 								if(type === "application/javascript" || type === "text/css") {
-									const mapPath = `${fullPath}.map`;
+									const mapCommitted = `${committed}.map`;
+									const mapPath = options.basePath + mapCommitted;
 									if(await fs.exists(mapPath)) {
+										limb(mapCommitted);
 										await fs.unlink(mapPath);
 									}
-									const sourcePath = `${fullPath}.source`;
+									const sourceCommitted = `${committed}.source`;
+									const sourcePath = options.basePath + sourceCommitted;
 									if(await fs.exists(sourcePath)) {
+										limb(sourceCommitted);
 										await fs.unlink(sourcePath);
 									}
 								}
