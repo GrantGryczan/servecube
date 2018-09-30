@@ -734,7 +734,7 @@ const ServeCube = module.exports = {
 										await fs.writeFile(`${fullPath}.source`, originalContents);
 										const mapPath = `${fullPath}.map`;
 										const result = sass.renderSync({
-											data: originalContents,
+											data: originalContents || " ",
 											outFile: mapPath,
 											sourceMap: true
 										});
