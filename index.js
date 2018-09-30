@@ -22,7 +22,8 @@ const cleaner = new CleanCSS({
 	sourceMap: true
 });
 mime.define({
-	"text/html": ["njs"]
+	"text/html": ["njs"],
+	"text/css": ["scss"]
 });
 class ServeCubeError extends Error {
 	constructor() {
