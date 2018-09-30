@@ -24,7 +24,7 @@ const cleaner = new CleanCSS({
 mime.define({
 	"text/html": ["njs"],
 	"text/css": ["scss"]
-});
+}, true);
 class ServeCubeError extends Error {
 	constructor() {
 		const err = super(...arguments);
@@ -139,15 +139,15 @@ const ServeCube = module.exports = {
 		}
 		options.httpsRedirect = options.httpsRedirect === false ? false : !!(options.httpsRedirect || options.tls);
 		if(options.subdomains instanceof Object) {
-			for(const i of Object.keys(options.subdomains)) {
-				if(subdomainTest.test(i)) {
-					if(typeof options.subdomains[i] !== "string") {
-						throw new ServeCubeError(`The subdomain value associated with \`${i}\` is not a string.`);
-					} else if(!subdomainValueTest.test(options.subdomains[i])) {
-						throw new ServeCubeError(`"${options.subdomains[i]}" is not a valid subdomain value.`);
+			for(const subdomain of Object.keys(options.subdomains)) {
+				if(subdomainTest.test(subdomain)) {
+					if(typeof options.subdomains[subdomain] !== "string") {
+						throw new ServeCubeError(`The subdomain value associated with \`${subdomain}\` is not a string.`);
+					} else if(!subdomainValueTest.test(options.subdomains[subdomain])) {
+						throw new ServeCubeError(`"${options.subdomains[subdomain]}" is not a valid subdomain value.`);
 					}
 				} else {
-					throw new ServeCubeError(`"${i}" is not a valid subdomain.`);
+					throw new ServeCubeError(`"${subdomain}" is not a valid subdomain.`);
 				}
 			}
 		} else {
@@ -228,21 +228,21 @@ const ServeCube = module.exports = {
 				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
 					child = paths[0];
 				} else {
-					for(const i of Object.keys(parent.children)) {
-						if(parent.children[i].test) {
-							let matches = paths[0].match(parent.children[i].test);
+					for(const nextChild of Object.keys(parent.children)) {
+						if(parent.children[nextChild].test) {
+							let matches = paths[0].match(parent.children[nextChild].test);
 							if(matches) {
-								child = i;
+								child = nextChild;
 								if(!output.params) {
 									output.params = {};
 								}
-								for(let j = 0; j < parent.children[i].params.length; j++) {
-									output.params[parent.children[i].params[j]] = matches[j + 1];
+								for(let i = 0; i < parent.children[nextChild].params.length; i++) {
+									output.params[parent.children[nextChild].params[i]] = matches[i + 1];
 								}
 								break;
 							}
-						} else if(pageExtTest.test(i) && paths[0] === i.replace(pageExtTest, "")) {
-							child = i;
+						} else if(pageExtTest.test(nextChild) && paths[0] === nextChild.replace(pageExtTest, "")) {
+							child = nextChild;
 							break;
 						}
 					}
@@ -362,9 +362,9 @@ const ServeCube = module.exports = {
 			}
 			if(parents[0][1].children) {
 				const dirPath = `${rawPath}/`;
-				for(const i of Object.keys(loadCache)) {
-					if(i.startsWith(dirPath)) {
-						delete loadCache[i];
+				for(const rawPath of Object.keys(loadCache)) {
+					if(rawPath.startsWith(dirPath)) {
+						delete loadCache[rawPath];
 					}
 				}
 			}
@@ -375,9 +375,9 @@ const ServeCube = module.exports = {
 					delete parents[0][1].index;
 				}
 				if(parents[0][1].methods) {
-					for(const i of Object.keys(parents[0][1].methods)) {
-						if(parents[0][1].methods[i] === child) {
-							delete parents[0][1].methods[i];
+					for(const method of Object.keys(parents[0][1].methods)) {
+						if(parents[0][1].methods[method] === child) {
+							delete parents[0][1].methods[method];
 						}
 					}
 					if(!Object.keys(parents[0][1].methods).length) {
@@ -629,15 +629,15 @@ const ServeCube = module.exports = {
 							files[added] = 3;
 						}
 					}
-					for(const i of Object.keys(files)) {
-						const fullPath = options.basePath + i;
+					for(const committed of Object.keys(files)) {
+						const fullPath = options.basePath + committed;
 						try {
-							limb(i);
+							limb(committed);
 						} catch(err) {}
-						if(files[i] === 1) {
+						if(files[committed] === 1) {
 							if(await fs.exists(fullPath)) {
 								await fs.unlink(fullPath);
-								const type = mime.getType(i);
+								const type = mime.getType(committed);
 								if(type === "application/javascript" || type === "text/css") {
 									const mapPath = `${fullPath}.map`;
 									if(await fs.exists(mapPath)) {
@@ -649,9 +649,9 @@ const ServeCube = module.exports = {
 									}
 								}
 							}
-							let index = i.length;
-							while((index = i.lastIndexOf("/", index) - 1) !== -2) {
-								const path = options.basePath + i.slice(0, index + 1);
+							let index = committed.length;
+							while((index = committed.lastIndexOf("/", index) - 1) !== -2) {
+								const path = options.basePath + committed.slice(0, index + 1);
 								if(await fs.exists(path)) {
 									try {
 										await fs.rmdir(path);
@@ -660,42 +660,42 @@ const ServeCube = module.exports = {
 									}
 								}
 							}
-						} else if(files[i] === 2 || files[i] === 3) {
+						} else if(files[committed] === 2 || files[committed] === 3) {
 							let file;
 							try {
-								file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${i}?ref=${branch}`, requestOptions));
+								file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${committed}?ref=${branch}`, requestOptions));
 							} catch(err) {
 								console.error(err);
 								continue;
 							}
 							let contents = Buffer.from(file.content, file.encoding);
 							let index = 0;
-							while(index = i.indexOf("/", index) + 1) {
-								const nextPath = options.basePath + i.slice(0, index - 1);
+							while(index = committed.indexOf("/", index) + 1) {
+								const nextPath = options.basePath + committed.slice(0, index - 1);
 								if(!await fs.exists(nextPath)) {
 									await fs.mkdir(nextPath);
 								}
 							}
-							if(njsExtTest.test(i)) {
+							if(njsExtTest.test(committed)) {
 								contents = minifyHTMLInJS(String(contents));
-							} else if(htmlExtTest.test(i)) {
+							} else if(htmlExtTest.test(committed)) {
 								contents = minifyHTML(String(contents));
 							} else {
 								let publicDir = false;
 								for(const dir of Object.values(dirs)) {
-									if(i.startsWith(dir)) {
+									if(committed.startsWith(dir)) {
 										publicDir = dir;
 										break;
 									}
 								}
-								const type = mime.getType(i);
+								const type = mime.getType(committed);
 								const typeIsJS = type === "application/javascript";
 								if(publicDir) {
 									if(typeIsJS) {
 										const originalContents = minifyHTMLInJS(String(contents));
 										await fs.writeFile(`${fullPath}.source`, originalContents);
-										const filenameIndex = i.lastIndexOf("/") + 1;
-										const filename = i.slice(filenameIndex);
+										const filenameIndex = committed.lastIndexOf("/") + 1;
+										const filename = committed.slice(filenameIndex);
 										const compiled = babel.transform(originalContents, {
 											ast: false,
 											comments: false,
@@ -716,15 +716,15 @@ const ServeCube = module.exports = {
 											},
 											sourceMap: {
 												content: JSON.stringify(compiled.map),
-												root: i.slice(publicDir.length, filenameIndex)
+												root: committed.slice(publicDir.length, filenameIndex)
 											}
 										});
 										contents = result.code;
 										const sourceMap = JSON.parse(result.map);
 										sourceMap.sources = [`${filename}.source`];
 										await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
-										await replant(`${i}.source`);
-										await replant(`${i}.map`);
+										await replant(`${committed}.source`);
+										await replant(`${committed}.map`);
 									} else if(type === "text/css") {
 										const originalContents = String(contents);
 										await fs.writeFile(`${fullPath}.source`, originalContents);
@@ -737,12 +737,12 @@ const ServeCube = module.exports = {
 										const output = cleaner.minify(String(result.css), String(result.map));
 										contents = output.styles;
 										const sourceMap = JSON.parse(output.sourceMap);
-										const filenameIndex = i.lastIndexOf("/") + 1;
-										sourceMap.sourceRoot = i.slice(publicDir.length, filenameIndex);
-										sourceMap.sources = [`${i.slice(filenameIndex)}.source`];
+										const filenameIndex = committed.lastIndexOf("/") + 1;
+										sourceMap.sourceRoot = committed.slice(publicDir.length, filenameIndex);
+										sourceMap.sources = [`${committed.slice(filenameIndex)}.source`];
 										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
-										await replant(`${i}.source`);
-										await replant(`${i}.map`);
+										await replant(`${committed}.source`);
+										await replant(`${committed}.map`);
 									}
 								} else if(typeIsJS) {
 									contents = minifyHTMLInJS(String(contents));
@@ -750,7 +750,7 @@ const ServeCube = module.exports = {
 							}
 							await fs.writeFile(fullPath, contents);
 							try {
-								await replant(i);
+								await replant(committed);
 							} catch(err) {}
 						}
 					}
