@@ -804,7 +804,7 @@ const ServeCube = module.exports = {
 				res.redirect(308, redirect);
 				return;
 			} else {
-				const {rawPath, branch, hasIndex, methods, forbidden, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
+				const {rawPath, branches, hasIndex, methods, forbidden, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
 				let allowedMethods = methods ? methods.join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
 				if(allowedMethods) {
 					allowedMethods = `OPTIONS, ${allowedMethods}`;
@@ -814,7 +814,7 @@ const ServeCube = module.exports = {
 					}
 				}
 				req.rawPath = rawPath;
-				req.branch = branch;
+				req.branches = branches;
 				if(req.method === "OPTIONS") {
 					res.send();
 					return;
