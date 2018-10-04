@@ -212,32 +212,33 @@ const ServeCube = module.exports = {
 					forbidden: true
 				};
 			}
+			const parent = tree[dir];
 			const output = {
 				rawPath: dir,
-				branch: tree[dir]
+				branches: [parent]
 			};
 			while(paths.length) {
 				let child;
 				if(paths[0] === "") {
-					if(output.branch.index) {
-						child = output.branch.index;
+					if(parent.index) {
+						child = parent.index;
 					} else {
 						delete output.rawPath;
 						break;
 					}
-				} if(output.branch.children[paths[0]] && !output.branch.children[paths[0]].test) {
+				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
 					child = paths[0];
 				} else {
-					for(const nextChild of Object.keys(output.branch.children)) {
-						if(output.branch.children[nextChild].test) {
-							let matches = paths[0].match(output.branch.children[nextChild].test);
+					for(const nextChild of Object.keys(parent.children)) {
+						if(parent.children[nextChild].test) {
+							let matches = paths[0].match(parent.children[nextChild].test);
 							if(matches) {
 								child = nextChild;
 								if(!output.params) {
 									output.params = {};
 								}
-								for(let i = 0; i < output.branch.children[nextChild].params.length; i++) {
-									output.params[output.branch.children[nextChild].params[i]] = matches[i + 1];
+								for(let i = 0; i < parent.children[nextChild].params.length; i++) {
+									output.params[parent.children[nextChild].params[i]] = matches[i + 1];
 								}
 								break;
 							}
@@ -249,11 +250,12 @@ const ServeCube = module.exports = {
 				}
 				if(child) {
 					if(paths.length === 1) {
-						if(output.branch.children[child].methods) {
-							output.methods = Object.keys(output.branch.children[child].methods);
-							if(output.branch.children[child].methods[method]) {
+						if(parent.children[child].methods) {
+							output.methods = Object.keys(parent.children[child].methods);
+							if(parent.children[child].methods[method]) {
 								output.rawPath += `/${child}`;
-								child = (output.branch = output.branch.children[child]).methods[method];
+								output.branches.push(parent = parent.children[child]);
+								child = parent.methods[method];
 							} else {
 								output.methodNotAllowed = true;
 								delete output.rawPath;
@@ -261,15 +263,15 @@ const ServeCube = module.exports = {
 							}
 						}
 						output.rawPath += `/${child}`;
-						output.hasIndex = !!output.branch.children[child].index;
-						output.func = output.branch.children[child].func;
+						output.hasIndex = !!parent.children[child].index;
+						output.func = parent.children[child].func;
 						break;
-					} else if(!output.branch.children[child].children) {
+					} else if(!parent.children[child].children) {
 						output.rawPath += `/${child}`;
 						break;
 					}
 					output.rawPath += `/${child}`;
-					output.branch = output.branch.children[child];
+					output.branches.push(parent = parent.children[child]);
 					paths.shift();
 				} else {
 					delete output.rawPath;

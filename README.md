@@ -272,7 +272,7 @@ ServeCube wraps `express`, and uses custom middleware that does a few convenient
 		* Example: `"/a URL path/with spaces in it"`
 	* `rawPath`: (string) The raw path to the planted file that was requested.
 		* Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
-	* `branch`: (string) The branch object for the requested file under the planted directory tree. Only use this if you know what you're doing.
+	* `branches`: (string) An array of parent branch objects for the requested file under the planted directory tree. Only use this if you know what you're doing.
 
 ServeCube's middleware runs before any of the middleware you define in [`options.middleware`](#async-serveoptions).
 
