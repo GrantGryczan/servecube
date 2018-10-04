@@ -215,7 +215,7 @@ const ServeCube = module.exports = {
 			let parent = tree[dir];
 			const output = {
 				rawPath: dir,
-				branches: [parent]
+				branches: [dir]
 			};
 			while(paths.length) {
 				let child;
@@ -249,13 +249,13 @@ const ServeCube = module.exports = {
 					}
 				}
 				if(child) {
+					
 					if(paths.length === 1) {
 						if(parent.children[child].methods) {
 							output.methods = Object.keys(parent.children[child].methods);
 							if(parent.children[child].methods[method]) {
 								output.rawPath += `/${child}`;
-								output.branches.push(parent = parent.children[child]);
-								child = parent.methods[method];
+								output.branches.push(child = (parent = parent.children[child]).methods[method]);
 							} else {
 								output.methodNotAllowed = true;
 								delete output.rawPath;
@@ -265,13 +265,16 @@ const ServeCube = module.exports = {
 						output.rawPath += `/${child}`;
 						output.hasIndex = !!parent.children[child].index;
 						output.func = parent.children[child].func;
+						output.branches.push(child);
 						break;
 					} else if(!parent.children[child].children) {
 						output.rawPath += `/${child}`;
+						output.branches.push(child);
 						break;
 					}
 					output.rawPath += `/${child}`;
-					output.branches.push(parent = parent.children[child]);
+					parent = parent.children[child];
+					output.branches.push(child);
 					paths.shift();
 				} else {
 					delete output.rawPath;
