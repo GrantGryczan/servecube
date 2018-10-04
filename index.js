@@ -212,7 +212,7 @@ const ServeCube = module.exports = {
 					forbidden: true
 				};
 			}
-			const parent = tree[dir];
+			let parent = tree[dir];
 			const output = {
 				rawPath: dir,
 				branches: [parent]
