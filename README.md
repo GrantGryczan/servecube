@@ -267,11 +267,12 @@ ServeCube wraps `express`, and uses custom middleware that does a few convenient
 	* `dir`: (string) The subdomain directory of the requested file.
 		* Examples: `"www"`, `"api"`
 	* `queryString`: (?string) Everything after the question mark in the decoded URL, or `undefined` if there is no question mark.
-		* Examples: `"v=7wiNUBaK-6M"`, `"magic=real&test=true"`, `"q=awesome&safe=active&ssui=on"`, `"wow isn't it cool`"
+		* Examples: `"v=7wiNUBaK-6M"`, `"magic=real&test=true"`, `"q=awesome&safe=active&ssui=on"`, `"wow isn't it cool"`
 	* `decodedPath`: (string) The decoded URL without the query string and without the question mark.
 		* Example: `"/a URL path/with spaces in it"`
 	* `rawPath`: (string) The raw path to the planted file that was requested.
 		* Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
+	* `branch`: (string) The branch object for the requested file under the planted directory tree. Only use this if you know what you're doing.
 
 ServeCube's middleware runs before any of the middleware you define in [`options.middleware`](#async-serveoptions).
 

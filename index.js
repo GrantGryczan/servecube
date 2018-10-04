@@ -213,31 +213,31 @@ const ServeCube = module.exports = {
 				};
 			}
 			const output = {
-				rawPath: dir
+				rawPath: dir,
+				branch: tree[dir]
 			};
-			let parent = tree[dir];
 			while(paths.length) {
 				let child;
 				if(paths[0] === "") {
-					if(parent.index) {
-						child = parent.index;
+					if(output.branch.index) {
+						child = output.branch.index;
 					} else {
 						delete output.rawPath;
 						break;
 					}
-				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
+				} if(output.branch.children[paths[0]] && !output.branch.children[paths[0]].test) {
 					child = paths[0];
 				} else {
-					for(const nextChild of Object.keys(parent.children)) {
-						if(parent.children[nextChild].test) {
-							let matches = paths[0].match(parent.children[nextChild].test);
+					for(const nextChild of Object.keys(output.branch.children)) {
+						if(output.branch.children[nextChild].test) {
+							let matches = paths[0].match(output.branch.children[nextChild].test);
 							if(matches) {
 								child = nextChild;
 								if(!output.params) {
 									output.params = {};
 								}
-								for(let i = 0; i < parent.children[nextChild].params.length; i++) {
-									output.params[parent.children[nextChild].params[i]] = matches[i + 1];
+								for(let i = 0; i < output.branch.children[nextChild].params.length; i++) {
+									output.params[output.branch.children[nextChild].params[i]] = matches[i + 1];
 								}
 								break;
 							}
@@ -249,11 +249,11 @@ const ServeCube = module.exports = {
 				}
 				if(child) {
 					if(paths.length === 1) {
-						if(parent.children[child].methods) {
-							output.methods = Object.keys(parent.children[child].methods);
-							if(parent.children[child].methods[method]) {
+						if(output.branch.children[child].methods) {
+							output.methods = Object.keys(output.branch.children[child].methods);
+							if(output.branch.children[child].methods[method]) {
 								output.rawPath += `/${child}`;
-								child = (parent = parent.children[child]).methods[method];
+								child = (output.branch = output.branch.children[child]).methods[method];
 							} else {
 								output.methodNotAllowed = true;
 								delete output.rawPath;
@@ -261,15 +261,15 @@ const ServeCube = module.exports = {
 							}
 						}
 						output.rawPath += `/${child}`;
-						output.hasIndex = !!parent.children[child].index;
-						output.func = parent.children[child].func;
+						output.hasIndex = !!output.branch.children[child].index;
+						output.func = output.branch.children[child].func;
 						break;
-					} else if(!parent.children[child].children) {
+					} else if(!output.branch.children[child].children) {
 						output.rawPath += `/${child}`;
 						break;
 					}
 					output.rawPath += `/${child}`;
-					parent = parent.children[child];
+					output.branch = output.branch.children[child];
 					paths.shift();
 				} else {
 					delete output.rawPath;
@@ -802,7 +802,7 @@ const ServeCube = module.exports = {
 				res.redirect(308, redirect);
 				return;
 			} else {
-				const {rawPath, hasIndex, methods, forbidden, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
+				const {rawPath, branch, hasIndex, methods, forbidden, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
 				let allowedMethods = methods ? methods.join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
 				if(allowedMethods) {
 					allowedMethods = `OPTIONS, ${allowedMethods}`;
@@ -812,6 +812,7 @@ const ServeCube = module.exports = {
 					}
 				}
 				req.rawPath = rawPath;
+				req.branch = branch;
 				if(req.method === "OPTIONS") {
 					res.send();
 					return;
