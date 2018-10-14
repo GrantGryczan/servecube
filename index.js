@@ -635,132 +635,131 @@ const ServeCube = module.exports = {
 						}
 					}
 					for(const committed of Object.keys(files)) {
-						const fullPath = options.basePath + committed;
 						try {
-							limb(committed);
-						} catch(err) {}
-						if(files[committed] === 1) {
-							if(await fs.exists(fullPath)) {
-								await fs.unlink(fullPath);
-								const type = mime.getType(committed);
-								if(type === "application/javascript" || type === "text/css") {
-									const mapCommitted = `${committed}.map`;
-									const mapPath = options.basePath + mapCommitted;
-									if(await fs.exists(mapPath)) {
-										limb(mapCommitted);
-										await fs.unlink(mapPath);
-									}
-									const sourceCommitted = `${committed}.source`;
-									const sourcePath = options.basePath + sourceCommitted;
-									if(await fs.exists(sourcePath)) {
-										limb(sourceCommitted);
-										await fs.unlink(sourcePath);
-									}
-								}
-							}
-							let index = committed.length;
-							while((index = committed.lastIndexOf("/", index) - 1) !== -2) {
-								const path = options.basePath + committed.slice(0, index + 1);
-								if(await fs.exists(path)) {
-									try {
-										await fs.rmdir(path);
-									} catch(err) {
-										break;
-									}
-								}
-							}
-						} else if(files[committed] === 2 || files[committed] === 3) {
-							let file;
+							const fullPath = options.basePath + committed;
 							try {
-								file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${committed}?ref=${branch}`, requestOptions));
-							} catch(err) {
-								console.error(err);
-								continue;
-							}
-							let contents = Buffer.from(file.content, file.encoding);
-							let index = 0;
-							while(index = committed.indexOf("/", index) + 1) {
-								const nextPath = options.basePath + committed.slice(0, index - 1);
-								if(!await fs.exists(nextPath)) {
-									await fs.mkdir(nextPath);
-								}
-							}
-							if(njsExtTest.test(committed)) {
-								contents = minifyHTMLInJS(String(contents));
-							} else if(htmlExtTest.test(committed)) {
-								contents = minifyHTML(String(contents));
-							} else {
-								let publicDir = false;
-								for(const dir of Object.values(dirs)) {
-									if(committed.startsWith(dir)) {
-										publicDir = dir;
-										break;
-									}
-								}
-								const type = mime.getType(committed);
-								const typeIsJS = type === "application/javascript";
-								if(publicDir) {
-									if(typeIsJS) {
-										const originalContents = minifyHTMLInJS(String(contents));
-										await fs.writeFile(`${fullPath}.source`, originalContents);
-										const filenameIndex = committed.lastIndexOf("/") + 1;
-										const filename = committed.slice(filenameIndex);
-										const compiled = babel.transform(originalContents, {
-											ast: false,
-											comments: false,
-											compact: true,
-											filename,
-											minified: true,
-											presets: ["env"],
-											sourceMaps: true,
-											sourceType: "script",
-											...options.babelOptions
-										});
-										const result = UglifyJS.minify(compiled.code, {
-											parse: {
-												html5_comments: false
-											},
-											compress: {
-												passes: 2
-											},
-											sourceMap: {
-												content: JSON.stringify(compiled.map),
-												root: committed.slice(publicDir.length, filenameIndex)
-											}
-										});
-										contents = result.code;
-										const sourceMap = JSON.parse(result.map);
-										sourceMap.sources = [`${filename}.source`];
-										await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
-										await replant(`${committed}.source`);
-										await replant(`${committed}.map`);
-									} else if(type === "text/css") {
-										const originalContents = String(contents);
-										await fs.writeFile(`${fullPath}.source`, originalContents);
-										const mapPath = `${fullPath}.map`;
-										const result = sass.renderSync({
-											data: originalContents || " ",
-											outFile: mapPath,
-											sourceMap: true
-										});
-										const output = cleaner.minify(String(result.css), String(result.map));
-										contents = output.styles;
-										const sourceMap = JSON.parse(output.sourceMap);
-										const filenameIndex = committed.lastIndexOf("/") + 1;
-										sourceMap.sourceRoot = committed.slice(publicDir.length, filenameIndex);
-										sourceMap.sources = [`${committed.slice(filenameIndex)}.source`];
-										await fs.writeFile(mapPath, JSON.stringify(sourceMap));
-										await replant(`${committed}.source`);
-										await replant(`${committed}.map`);
-									}
-								} else if(typeIsJS) {
-									contents = minifyHTMLInJS(String(contents));
-								}
-							}
-							await fs.writeFile(fullPath, contents);
-							try {
-								await replant(committed);
+								limb(committed);
 							} catch(err) {}
+							if(files[committed] === 1) {
+								if(await fs.exists(fullPath)) {
+									await fs.unlink(fullPath);
+									const type = mime.getType(committed);
+									if(type === "application/javascript" || type === "text/css") {
+										const mapCommitted = `${committed}.map`;
+										const mapPath = options.basePath + mapCommitted;
+										if(await fs.exists(mapPath)) {
+											limb(mapCommitted);
+											await fs.unlink(mapPath);
+										}
+										const sourceCommitted = `${committed}.source`;
+										const sourcePath = options.basePath + sourceCommitted;
+										if(await fs.exists(sourcePath)) {
+											limb(sourceCommitted);
+											await fs.unlink(sourcePath);
+										}
+									}
+								}
+								let index = committed.length;
+								while((index = committed.lastIndexOf("/", index) - 1) !== -2) {
+									const path = options.basePath + committed.slice(0, index + 1);
+									if(await fs.exists(path)) {
+										try {
+											await fs.rmdir(path);
+										} catch(err) {
+											break;
+										}
+									}
+								}
+							} else if(files[committed] === 2 || files[committed] === 3) {
+								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${committed}?ref=${branch}`, requestOptions));
+								let contents = Buffer.from(file.content, file.encoding);
+								let index = 0;
+								while(index = committed.indexOf("/", index) + 1) {
+									const nextPath = options.basePath + committed.slice(0, index - 1);
+									if(!await fs.exists(nextPath)) {
+										await fs.mkdir(nextPath);
+									}
+								}
+								if(njsExtTest.test(committed)) {
+									contents = minifyHTMLInJS(String(contents));
+								} else if(htmlExtTest.test(committed)) {
+									contents = minifyHTML(String(contents));
+								} else {
+									let publicDir = false;
+									for(const dir of Object.values(dirs)) {
+										if(committed.startsWith(dir)) {
+											publicDir = dir;
+											break;
+										}
+									}
+									const type = mime.getType(committed);
+									const typeIsJS = type === "application/javascript";
+									if(publicDir) {
+										if(typeIsJS) {
+											const originalContents = minifyHTMLInJS(String(contents));
+											await fs.writeFile(`${fullPath}.source`, originalContents);
+											const filenameIndex = committed.lastIndexOf("/") + 1;
+											const filename = committed.slice(filenameIndex);
+											const compiled = babel.transform(originalContents, {
+												ast: false,
+												comments: false,
+												compact: true,
+												filename,
+												minified: true,
+												presets: ["env"],
+												sourceMaps: true,
+												sourceType: "script",
+												...options.babelOptions
+											});
+											const result = UglifyJS.minify(compiled.code, {
+												parse: {
+													html5_comments: false
+												},
+												compress: {
+													passes: 2
+												},
+												sourceMap: {
+													content: JSON.stringify(compiled.map),
+													root: committed.slice(publicDir.length, filenameIndex)
+												}
+											});
+											contents = result.code;
+											const sourceMap = JSON.parse(result.map);
+											sourceMap.sources = [`${filename}.source`];
+											await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
+											await replant(`${committed}.source`);
+											await replant(`${committed}.map`);
+										} else if(type === "text/css") {
+											const originalContents = String(contents);
+											await fs.writeFile(`${fullPath}.source`, originalContents);
+											const mapPath = `${fullPath}.map`;
+											const result = sass.renderSync({
+												data: originalContents || " ",
+												outFile: mapPath,
+												sourceMap: true
+											});
+											const output = cleaner.minify(String(result.css), String(result.map));
+											contents = output.styles;
+											const sourceMap = JSON.parse(output.sourceMap);
+											const filenameIndex = committed.lastIndexOf("/") + 1;
+											sourceMap.sourceRoot = committed.slice(publicDir.length, filenameIndex);
+											sourceMap.sources = [`${committed.slice(filenameIndex)}.source`];
+											await fs.writeFile(mapPath, JSON.stringify(sourceMap));
+											await replant(`${committed}.source`);
+											await replant(`${committed}.map`);
+										}
+									} else if(typeIsJS) {
+										contents = minifyHTMLInJS(String(contents));
+									}
+								}
+								await fs.writeFile(fullPath, contents);
+								try {
+									await replant(committed);
+								} catch(err) {}
+							}
+						} catch(err) {
+							console.error(err);
+							continue;
 						}
 					}
 					res.send();
