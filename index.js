@@ -556,7 +556,22 @@ const ServeCube = module.exports = {
 			if(result.redirect) {
 				res.redirect(result.status || 307, result.redirect);
 			} else {
-				res.status(result.status || (res.statusCode === 200 ? (req.method === "POST" ? 201 : 200) : res.statusCode)).send(result.value);
+				res.status(result.status || (res.statusCode === 200 ? (req.method === "POST" ? 201 : 200) : res.statusCode));
+				if(result.value) {
+					let value;
+					if(typeof result.value === "string") {
+						({value} = result);
+					} else {
+						try {
+							value = JSON.stringify(result.value);
+						} catch(err) {
+							throw new ServeCubeError(`An error occured while evaluating \`${options.basePath + req.rawPath}\`.\n${err.stack}`);
+						}
+					}
+					res.set("Content-Length", value.length).send(value);
+				} else {
+					res.send();
+				}
 			}
 		};
 		const renderError = cube.renderError = async (status, req, res) => {
