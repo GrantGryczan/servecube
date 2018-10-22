@@ -876,7 +876,9 @@ const ServeCube = module.exports = {
 							res.set("SourceMap", `${req.decodedPath}.map`);
 						}
 					}
-					fs.createReadStream(options.basePath + req.rawPath).pipe(res);
+					const fullPath = options.basePath + req.rawPath;
+					res.set("Content-Length", (await fs.stat(fullPath)).size);
+					fs.createReadStream(fullPath).pipe(res);
 				} else {
 					renderError(405, req, res);
 				}
