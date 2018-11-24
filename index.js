@@ -559,9 +559,9 @@ const ServeCube = module.exports = {
 				res.status(result.status || (res.statusCode === 200 ? (req.method === "POST" ? 201 : 200) : res.statusCode));
 				if(result.value) {
 					let value;
-					if(typeof result.value === "string") {
+					if(typeof result.value === "string" || result instanceof Buffer) {
 						({value} = result);
-					} else if(!(result instanceof Buffer)) {
+					} else {
 						try {
 							value = JSON.stringify(result.value);
 						} catch(err) {
