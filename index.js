@@ -561,7 +561,7 @@ const ServeCube = module.exports = {
 					let value;
 					if(typeof result.value === "string") {
 						({value} = result);
-					} else {
+					} else if(!(result instanceof Buffer)) {
 						try {
 							value = JSON.stringify(result.value);
 						} catch(err) {
