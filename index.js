@@ -64,7 +64,7 @@ const cleanDir = value => typeof value === "string" ? value.replace(slashesOnEnd
 const minifyHTML = code => code.replace(brs, "").replace(whitespace, " ");
 const minifyHTMLInJS = code => {
 	code = code.split(htmlTest);
-	for(let i = 1; i < code.length; i += 2) {
+	for (let i = 1; i < code.length; i += 2) {
 		code[i] = minifyHTML(code[i]);
 	}
 	return code.join("");
@@ -72,7 +72,7 @@ const minifyHTMLInJS = code => {
 const _depth = Symbol("depth");
 class ServeCubeContext {
 	constructor(obj) {
-		if(obj instanceof Object) {
+		if (obj instanceof Object) {
 			Object.assign(this, obj);
 		}
 		this[_depth] = typeof this.depth === "number" ? this.depth : 0;
@@ -83,9 +83,9 @@ class ServeCubeContext {
 }
 const html = (strs, ...exps) => {
 	let str = strs[0];
-	for(let i = 0; i < exps.length; i++) {
+	for (let i = 0; i < exps.length; i++) {
 		let code = String(exps[i]);
-		if(strs[i].slice(-1) === "$") {
+		if (strs[i].slice(-1) === "$") {
 			str = str.slice(0, -1);
 			code = html.escape(code);
 		}
@@ -94,10 +94,10 @@ const html = (strs, ...exps) => {
 	return str;
 };
 html.escape = code => {
-	if(typeof code !== "string") {
+	if (typeof code !== "string") {
 		throw new MiroError("The `code` parameter must be a string.");
 	}
-	for(const htmlReplacement of htmlReplacements) {
+	for (const htmlReplacement of htmlReplacements) {
 		code = code.replace(...htmlReplacement);
 	}
 	return code;
@@ -107,43 +107,43 @@ const ServeCube = module.exports = {
 	ServeCubeContext, 
 	serve: async options => {
 		const cube = {};
-		if(!(options instanceof Object)) {
+		if (!(options instanceof Object)) {
 			throw new ServeCubeError("The `options` parameter must be an object.");
 		}
-		if(typeof options.domain !== "string") {
+		if (typeof options.domain !== "string") {
 			throw new ServeCubeError("The `domain` option must be a string.");
 		}
 		options = {...options};
-		if(!(options.eval instanceof Function)) {
+		if (!(options.eval instanceof Function)) {
 			options.eval = eval;
 		}
-		if(typeof options.basePath !== "string") {
+		if (typeof options.basePath !== "string") {
 			options.basePath = `${process.cwd()}/`;
-		} else if(!options.basePath.endsWith("/")) {
+		} else if (!options.basePath.endsWith("/")) {
 			options.basePath = `${options.basePath}/`;
 		}
 		options.basePath = options.basePath.replace(backslashes, "/");
 		options.errorDir = cleanDir(options.errorDir);
-		if(options.loadDirs) {
+		if (options.loadDirs) {
 			options.loadDirs = options.loadDirs.map(cleanDir);
 		}
-		if(typeof options.httpPort !== "number") {
+		if (typeof options.httpPort !== "number") {
 			options.httpPort = 8080;
 		}
-		if(options.tls instanceof Object) {
-			if(typeof options.httpsPort !== "number") {
+		if (options.tls instanceof Object) {
+			if (typeof options.httpsPort !== "number") {
 				options.httpsPort = 8443;
 			}
 		} else {
 			delete options.tls;
 		}
 		options.httpsRedirect = options.httpsRedirect === false ? false : !!(options.httpsRedirect || options.tls);
-		if(options.subdomains instanceof Object) {
-			for(const subdomain of Object.keys(options.subdomains)) {
-				if(subdomainTest.test(subdomain)) {
-					if(typeof options.subdomains[subdomain] !== "string") {
+		if (options.subdomains instanceof Object) {
+			for (const subdomain of Object.keys(options.subdomains)) {
+				if (subdomainTest.test(subdomain)) {
+					if (typeof options.subdomains[subdomain] !== "string") {
 						throw new ServeCubeError(`The subdomain value associated with \`${subdomain}\` is not a string.`);
-					} else if(!subdomainValueTest.test(options.subdomains[subdomain])) {
+					} else if (!subdomainValueTest.test(options.subdomains[subdomain])) {
 						throw new ServeCubeError(`"${options.subdomains[subdomain]}" is not a valid subdomain value.`);
 					}
 				} else {
@@ -153,23 +153,23 @@ const ServeCube = module.exports = {
 		} else {
 			options.subdomains = {};
 		}
-		if(options.subdomains["*"] === undefined) {
-			if(options.subdomains[""] === undefined) {
+		if (options.subdomains["*"] === undefined) {
+			if (options.subdomains[""] === undefined) {
 				options.subdomains[""] = "www/";
 			}
 			options.subdomains["*"] = ".";
 		}
-		if(typeof options.githubSecret === "string") {
-			if(options.githubSubdomain === undefined) {
+		if (typeof options.githubSecret === "string") {
+			if (options.githubSubdomain === undefined) {
 				options.githubSubdomain = "";
 			}
 		} else {
 			options.githubSecret = false;
 		}
-		if(!(options.loadStart instanceof Array)) {
+		if (!(options.loadStart instanceof Array)) {
 			delete options.loadStart;
 		}
-		if(!(options.loadEnd instanceof Array)) {
+		if (!(options.loadEnd instanceof Array)) {
 			delete options.loadEnd;
 		}
 		const requestOptions = {
@@ -177,28 +177,28 @@ const ServeCube = module.exports = {
 				"User-Agent": `ServeCube/${package.version}`
 			}
 		};
-		if(typeof options.githubToken === "string") {
+		if (typeof options.githubToken === "string") {
 			requestOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
-		if(!(options.babelOptions instanceof Object)) {
+		if (!(options.babelOptions instanceof Object)) {
 			options.babelOptions = {};
 		}
 		const originTest = new RegExp(`^https?://(?:.+\\.)?${escapeRegExp(options.domain)}$`);
 		const app = cube.app = express();
 		app.set("trust proxy", true);
-		if(!options.domain.includes(".")) {
+		if (!options.domain.includes(".")) {
 			app.set("subdomain offset", 1);
 		}
 		const tree = cube.tree = {};
 		const getPaths = (path, paramName) => {
-			if(typeof path !== "string") {
+			if (typeof path !== "string") {
 				throw new ServeCubeError(`The \`${paramName || "path"}\` parameter must be a string.`);
 			}
 			const output = {};
-			if(!(output.dir = (output.paths = path.split("/")).shift())) {
+			if (!(output.dir = (output.paths = path.split("/")).shift())) {
 				throw new ServeCubeError("The specified path contains no base directory.");
 			}
-			if(!tree[output.dir]) {
+			if (!tree[output.dir]) {
 				throw new ServeCubeError(`The specified base directory, \`${output.dir}\`, is not planted.`);
 			}
 			return output;
@@ -207,7 +207,7 @@ const ServeCube = module.exports = {
 			method = typeof method === "string" ? method.toUpperCase() : "GET";
 			const {dir, paths} = getPaths(path);
 			const lastPath = paths[paths.length - 1];
-			if(allMethods.includes(lastPath) && method !== lastPath) {
+			if (allMethods.includes(lastPath) && method !== lastPath) {
 				return {
 					forbidden: true
 				};
@@ -217,43 +217,43 @@ const ServeCube = module.exports = {
 				rawPath: dir,
 				branches: [dir]
 			};
-			while(paths.length) {
+			while (paths.length) {
 				let child;
-				if(paths[0] === "") {
-					if(parent.index) {
+				if (paths[0] === "") {
+					if (parent.index) {
 						child = parent.index;
 					} else {
 						delete output.rawPath;
 						break;
 					}
-				} if(parent.children[paths[0]] && !parent.children[paths[0]].test) {
+				} if (parent.children[paths[0]] && !parent.children[paths[0]].test) {
 					child = paths[0];
 				} else {
-					for(const nextChild of Object.keys(parent.children)) {
-						if(parent.children[nextChild].test) {
+					for (const nextChild of Object.keys(parent.children)) {
+						if (parent.children[nextChild].test) {
 							let matches = paths[0].match(parent.children[nextChild].test);
-							if(matches) {
+							if (matches) {
 								child = nextChild;
-								if(!output.params) {
+								if (!output.params) {
 									output.params = {};
 								}
-								for(let i = 0; i < parent.children[nextChild].params.length; i++) {
+								for (let i = 0; i < parent.children[nextChild].params.length; i++) {
 									output.params[parent.children[nextChild].params[i]] = matches[i + 1];
 								}
 								break;
 							}
-						} else if(pageExtTest.test(nextChild) && paths[0] === nextChild.replace(pageExtTest, "")) {
+						} else if (pageExtTest.test(nextChild) && paths[0] === nextChild.replace(pageExtTest, "")) {
 							child = nextChild;
 							break;
 						}
 					}
 				}
-				if(child) {
+				if (child) {
 					
-					if(paths.length === 1) {
-						if(parent.children[child].methods) {
+					if (paths.length === 1) {
+						if (parent.children[child].methods) {
 							output.methods = Object.keys(parent.children[child].methods);
-							if(parent.children[child].methods[method]) {
+							if (parent.children[child].methods[method]) {
 								output.rawPath += `/${child}`;
 								output.branches.push(child = (parent = parent.children[child]).methods[method]);
 							} else {
@@ -267,7 +267,7 @@ const ServeCube = module.exports = {
 						output.func = parent.children[child].func;
 						output.branches.push(child);
 						break;
-					} else if(!parent.children[child].children) {
+					} else if (!parent.children[child].children) {
 						output.rawPath += `/${child}`;
 						output.branches.push(child);
 						break;
@@ -281,14 +281,14 @@ const ServeCube = module.exports = {
 					break;
 				}
 			}
-			if(paths.length !== 1) {
+			if (paths.length !== 1) {
 				delete output.rawPath;
 			}
-			if(output.rawPath) {
+			if (output.rawPath) {
 				const fullPath = options.basePath + output.rawPath;
-				if(!await fs.exists(fullPath)) {
+				if (!await fs.exists(fullPath)) {
 					throw new ServeCubeError(`The file \`${fullPath}\` is planted but was not found.`);
-				} else if((await fs.stat(fullPath)).isDirectory()) {
+				} else if ((await fs.stat(fullPath)).isDirectory()) {
 					delete output.rawPath;
 				}
 			}
@@ -296,26 +296,26 @@ const ServeCube = module.exports = {
 		};
 		const plantChild = async (parent, child, isDir, fullPath) => {
 			parent.children[child] = {};
-			if(!isDir && pageExtTest.test(child)) {
-				if(indexTest.test(child)) {
+			if (!isDir && pageExtTest.test(child)) {
+				if (indexTest.test(child)) {
 					parent.index = child;
-				} else if(methodAllTest.test(child)) {
-					if(!parent.methods) {
+				} else if (methodAllTest.test(child)) {
+					if (!parent.methods) {
 						parent.methods = {};
 					}
-					for(const method of allMethods) {
-						if(!parent.methods[method]) {
+					for (const method of allMethods) {
+						if (!parent.methods[method]) {
 							parent.methods[method] = child;
 						}
 					}
 				} else {
 					const methods = child.match(methodTest);
-					if(methods) {
-						if(!parent.methods) {
+					if (methods) {
+						if (!parent.methods) {
 							parent.methods = {};
 						}
-						for(let i = 1; i < methods.length; i++) {
-							if(methods[i]) {
+						for (let i = 1; i < methods.length; i++) {
+							if (methods[i]) {
 								parent.methods[methods[i]] = child;
 							}
 						}
@@ -324,31 +324,31 @@ const ServeCube = module.exports = {
 			}
 			const params = [];
 			const re = pathToRegexp(child.replace(pageExtTest, "").replace(templateTest, ":$1"), params, pathToRegexpOptions);
-			if(params.length) {
+			if (params.length) {
 				parent.children[child].params = params.map(byNames);
 				parent.children[child].test = re;
 			}
-			if(isDir) {
+			if (isDir) {
 				parent.children[child].children = {};
-			} else if(njsExtTest.test(child)) {
+			} else if (njsExtTest.test(child)) {
 				try {
 					parent.children[child].func = options.eval(`(async function() {${await fs.readFile(fullPath)}})`);
-				} catch(err) {
+				} catch (err) {
 					throw new ServeCubeError(`An error occured while evaluating \`${fullPath}\`.\n${err.stack}`);
 				}
-				if(!(parent.children[child].func instanceof AsyncFunction)) {
+				if (!(parent.children[child].func instanceof AsyncFunction)) {
 					throw new ServeCubeError("The `eval` option must return the evaluated input, which should always be an async function.");
 				}
 			}
 		}
 		const plant = async (parent, path) => {
 			const children = await fs.readdir(options.basePath + path);
-			for(const filename of children) {
+			for (const filename of children) {
 				const childPath = `${path}/${filename}`;
 				const fullPath = options.basePath + childPath;
 				const isDir = (await fs.stat(fullPath)).isDirectory();
 				await plantChild(parent, filename, isDir, fullPath);
-				if(isDir) {
+				if (isDir) {
 					await plant(parent.children[filename], childPath);
 				}
 			}
@@ -357,40 +357,40 @@ const ServeCube = module.exports = {
 			const {dir, paths} = getPaths(rawPath, "rawPath");
 			let parent = tree[dir];
 			const parents = [[dir, parent]];
-			while(paths.length) {
+			while (paths.length) {
 				const child = paths.shift();
-				if(parent.children && parent.children[child]) {
+				if (parent.children && parent.children[child]) {
 					parents.unshift([child, parent = parent.children[child]]);
 				} else {
 					throw new ServeCubeError(`The file \`${parents.map(byFirstItems).join("/")}/${child}\` is not planted.`);
 				}
 			}
-			if(parents[0][1].children) {
+			if (parents[0][1].children) {
 				const dirPath = `${rawPath}/`;
-				for(const rawPath of Object.keys(loadCache)) {
-					if(rawPath.startsWith(dirPath)) {
+				for (const rawPath of Object.keys(loadCache)) {
+					if (rawPath.startsWith(dirPath)) {
 						delete loadCache[rawPath];
 					}
 				}
 			}
 			delete loadCache[rawPath];
-			while(parents.length) {
+			while (parents.length) {
 				const child = parents.shift()[0];
-				if(parents[0][1].index === child) {
+				if (parents[0][1].index === child) {
 					delete parents[0][1].index;
 				}
-				if(parents[0][1].methods) {
-					for(const method of Object.keys(parents[0][1].methods)) {
-						if(parents[0][1].methods[method] === child) {
+				if (parents[0][1].methods) {
+					for (const method of Object.keys(parents[0][1].methods)) {
+						if (parents[0][1].methods[method] === child) {
 							delete parents[0][1].methods[method];
 						}
 					}
-					if(!Object.keys(parents[0][1].methods).length) {
+					if (!Object.keys(parents[0][1].methods).length) {
 						delete parents[0][1].methods;
 					}
 				}
 				delete parents[0][1].children[child];
-				if(Object.keys(parents[0][1].children).length) {
+				if (Object.keys(parents[0][1].children).length) {
 					break;
 				}
 			}
@@ -398,10 +398,10 @@ const ServeCube = module.exports = {
 		const replant = cube.replant = async rawPath => {
 			const {dir, paths} = getPaths(rawPath, "rawPath");
 			let parent = tree[dir];
-			while(paths.length) {
-				if(parent) {
-					if(parent.children) {
-						if(parent.children[paths[0]]) {
+			while (paths.length) {
+				if (parent) {
+					if (parent.children) {
+						if (parent.children[paths[0]]) {
 							parent = parent.children[paths[0]];
 							paths.shift();
 						} else {
@@ -414,17 +414,17 @@ const ServeCube = module.exports = {
 					break;
 				}
 			}
-			if(!paths.length) {
+			if (!paths.length) {
 				limb(rawPath);
 				return replant(rawPath);
 			}
 			const fullPath = options.basePath + rawPath;
-			if(!await fs.exists(fullPath)) {
+			if (!await fs.exists(fullPath)) {
 				throw new ServeCubeError(`The file \`${fullPath}\` was not found.`);
-			} else if((await fs.stat(fullPath)).isDirectory()) {
+			} else if ((await fs.stat(fullPath)).isDirectory()) {
 				throw new ServeCubeError(`The file \`${fullPath}\` is a directory.`);
 			}
-			while(paths.length - 1) {
+			while (paths.length - 1) {
 				const child = paths.shift();
 				await plantChild(parent, child, true);
 				parent = parent.children[child];
@@ -432,29 +432,29 @@ const ServeCube = module.exports = {
 			await plantChild(parent, paths[0], false, fullPath);
 		};
 		let dirs = Object.values(options.subdomains);
-		if(options.errorDir) {
+		if (options.errorDir) {
 			dirs.push(options.errorDir);
 		}
-		if(options.loadDirs) {
+		if (options.loadDirs) {
 			dirs.push(...options.loadDirs);
 		}
-		for(const dir of dirs = dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
+		for (const dir of dirs = dirs.filter(byUniqueDirectories).map(byNoLastItems)) {
 			await plant(tree[dir] = {
 				children: {}
 			}, dir);
 		}
 		const loadCache = cube.loadCache = {};
 		const load = cube.load = async (path, context) => {
-			if(!(context instanceof Object)) {
+			if (!(context instanceof Object)) {
 				context = {};
 			}
 			const {rawPath, params, func} = await getRawPath(path, context.method);
-			if(!rawPath) {
+			if (!rawPath) {
 				throw new ServeCubeError(`The file \`${path}\` is not planted.`);
 			}
 			const fullPath = options.basePath + rawPath;
-			if(func) {
-				if(context) {
+			if (func) {
+				if (context) {
 					context = new ServeCubeContext({
 						...context
 					});
@@ -479,25 +479,25 @@ const ServeCube = module.exports = {
 					...loadCache[context.rawPath][cacheIndex]
 				} : await new Promise(async (resolve, reject) => {
 					let resolution;
-					if(options.loadStart) {
-						for(const func of options.loadStart) {
-							if(func instanceof Function) {
+					if (options.loadStart) {
+						for (const func of options.loadStart) {
+							if (func instanceof Function) {
 								resolution = func(context);
-								if(resolution instanceof Promise) {
+								if (resolution instanceof Promise) {
 									resolution = await resolution;
 								}
-								if(resolution === false) {
+								if (resolution === false) {
 									break;
 								}
 							}
 						}
 					}
 					context.done = async () => {
-						if(options.loadEnd) {
-							for(const func of options.loadEnd) {
-								if(func instanceof AsyncFunction) {
+						if (options.loadEnd) {
+							for (const func of options.loadEnd) {
+								if (func instanceof AsyncFunction) {
 									await func(context);
-								} else if(func instanceof Function) {
+								} else if (func instanceof Function) {
 									func(context);
 								}
 							}
@@ -513,12 +513,12 @@ const ServeCube = module.exports = {
 						delete returnedContext.res;
 						delete returnedContext.method;
 						delete returnedContext.params;
-						if(context.cache) {
+						if (context.cache) {
 							delete returnedContext.cache;
-							if(!(context.cache instanceof Function)) {
+							if (!(context.cache instanceof Function)) {
 								context.cache = emptyString;
 							}
-							if(!loadCache[context.rawPath]) {
+							if (!loadCache[context.rawPath]) {
 								loadCache[context.rawPath] = {
 									vary: context.cache
 								};
@@ -527,12 +527,12 @@ const ServeCube = module.exports = {
 						}
 						resolve(returnedContext);
 					};
-					if(resolution === false) {
+					if (resolution === false) {
 						context.done();
 					} else {
 						try {
 							await func.call(context);
-						} catch(err) {
+						} catch (err) {
 							throw new ServeCubeError(`An error occured while executing \`${fullPath}\`.\n${err.stack}`);
 						}
 					}
@@ -544,7 +544,7 @@ const ServeCube = module.exports = {
 			}
 		};
 		const renderLoad = cube.renderLoad = async (path, req, res) => {
-			if(!res.get("Content-Type")) {
+			if (!res.get("Content-Type")) {
 				res.set("Content-Type", "text/html");
 			}
 			const context = new ServeCubeContext({
@@ -553,18 +553,18 @@ const ServeCube = module.exports = {
 				method: req.method
 			});
 			const result = await load(path, context);
-			if(result.redirect) {
+			if (result.redirect) {
 				res.redirect(result.status || 307, result.redirect);
 			} else {
 				res.status(result.status || (res.statusCode === 200 ? (req.method === "POST" ? 201 : 200) : res.statusCode));
-				if(result.value) {
+				if (result.value) {
 					let value;
-					if(typeof result.value === "string" || result.value instanceof Buffer) {
+					if (typeof result.value === "string" || result.value instanceof Buffer) {
 						({value} = result);
 					} else {
 						try {
 							value = JSON.stringify(result.value);
-						} catch(err) {
+						} catch (err) {
 							throw new ServeCubeError(`An error occured while evaluating \`${options.basePath + req.rawPath}\`.\n${err.stack}`);
 						}
 					}
@@ -575,10 +575,10 @@ const ServeCube = module.exports = {
 			}
 		};
 		const renderError = cube.renderError = async (status, req, res) => {
-			if(options.errorDir) {
+			if (options.errorDir) {
 				const path = options.errorDir + status;
 				const {rawPath} = await getRawPath(path, req.method);
-				if(rawPath) {
+				if (rawPath) {
 					res.status(status);
 					renderLoad(path, req, res);
 				} else {
@@ -593,9 +593,9 @@ const ServeCube = module.exports = {
 			type: "*/*"
 		}));
 		app.disable("X-Powered-By");
-		if(options.preMiddleware instanceof Array) {
-			for(const func of options.preMiddleware) {
-				if(func instanceof Function) {
+		if (options.preMiddleware instanceof Array) {
+			for (const func of options.preMiddleware) {
+				if (func instanceof Function) {
 					app.use(func);
 				}
 			}
@@ -605,112 +605,112 @@ const ServeCube = module.exports = {
 			res.set("X-Frame-Options", "SAMEORIGIN");
 			res.set("Vary", "Origin");
 			const origin = req.get("Origin");
-			if(origin && originTest.test(origin)) {
+			if (origin && originTest.test(origin)) {
 				res.set("Access-Control-Allow-Origin", origin);
 				const requestHeaders = req.get("Access-Control-Request-Headers");
-				if(requestHeaders) {
+				if (requestHeaders) {
 					res.set("Access-Control-Allow-Headers", requestHeaders);
 				}
 				res.set("Access-Control-Allow-Credentials", "true");
 			}
 			let redirect = false;
-			if(options.httpsRedirect && req.protocol === "http") {
+			if (options.httpsRedirect && req.protocol === "http") {
 				redirect = "https://";
 			}
 			try {
 				req.decodedURL = decodeURIComponent(req.url);
-			} catch(err) {
+			} catch (err) {
 				renderError(400, req, res);
 				return;
 			}
 			const subdomain = options.subdomains[req.subdomain = req.subdomains.join(".")] === undefined ? options.subdomains["*"] : options.subdomains[req.subdomain];
-			if(!redirect && options.githubSecret && req.subdomain === options.githubSubdomain && req.decodedURL === options.githubPayloadURL) {
+			if (!redirect && options.githubSecret && req.subdomain === options.githubSubdomain && req.decodedURL === options.githubPayloadURL) {
 				const signature = req.get("X-Hub-Signature");
-				if(signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}`) {
-					if(req.get("X-GitHub-Event") !== "push") {
+				if (signature && signature === `sha1=${crypto.createHmac("sha1", options.githubSecret).update(req.body).digest("hex")}`) {
+					if (req.get("X-GitHub-Event") !== "push") {
 						res.send();
 						return;
 					}
 					const payload = JSON.parse(req.body);
 					const branch = payload.ref.slice(payload.ref.lastIndexOf("/") + 1);
-					if(branch !== "master") {
+					if (branch !== "master") {
 						res.send();
 						return;
 					}
 					const files = {};
-					for(const commit of payload.commits) {
-						for(const removed of commit.removed) {
+					for (const commit of payload.commits) {
+						for (const removed of commit.removed) {
 							files[removed] = 1;
 						}
-						for(const modified of commit.modified) {
+						for (const modified of commit.modified) {
 							files[modified] = 2;
 						}
-						for(const added of commit.added) {
+						for (const added of commit.added) {
 							files[added] = 3;
 						}
 					}
-					for(const committed of Object.keys(files)) {
+					for (const committed of Object.keys(files)) {
 						try {
 							const fullPath = options.basePath + committed;
 							try {
 								limb(committed);
-							} catch(err) {}
-							if(files[committed] === 1) {
-								if(await fs.exists(fullPath)) {
+							} catch (err) {}
+							if (files[committed] === 1) {
+								if (await fs.exists(fullPath)) {
 									await fs.unlink(fullPath);
 									const type = mime.getType(committed);
-									if(type === "application/javascript" || type === "text/css") {
+									if (type === "application/javascript" || type === "text/css") {
 										const mapCommitted = `${committed}.map`;
 										const mapPath = options.basePath + mapCommitted;
-										if(await fs.exists(mapPath)) {
+										if (await fs.exists(mapPath)) {
 											limb(mapCommitted);
 											await fs.unlink(mapPath);
 										}
 										const sourceCommitted = `${committed}.source`;
 										const sourcePath = options.basePath + sourceCommitted;
-										if(await fs.exists(sourcePath)) {
+										if (await fs.exists(sourcePath)) {
 											limb(sourceCommitted);
 											await fs.unlink(sourcePath);
 										}
 									}
 								}
 								let index = committed.length;
-								while((index = committed.lastIndexOf("/", index) - 1) !== -2) {
+								while ((index = committed.lastIndexOf("/", index) - 1) !== -2) {
 									const path = options.basePath + committed.slice(0, index + 1);
-									if(await fs.exists(path)) {
+									if (await fs.exists(path)) {
 										try {
 											await fs.rmdir(path);
-										} catch(err) {
+										} catch (err) {
 											break;
 										}
 									}
 								}
-							} else if(files[committed] === 2 || files[committed] === 3) {
+							} else if (files[committed] === 2 || files[committed] === 3) {
 								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${committed}?ref=${branch}`, requestOptions));
 								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
-								while(index = committed.indexOf("/", index) + 1) {
+								while (index = committed.indexOf("/", index) + 1) {
 									const nextPath = options.basePath + committed.slice(0, index - 1);
-									if(!await fs.exists(nextPath)) {
+									if (!await fs.exists(nextPath)) {
 										await fs.mkdir(nextPath);
 									}
 								}
-								if(njsExtTest.test(committed)) {
+								if (njsExtTest.test(committed)) {
 									contents = minifyHTMLInJS(String(contents));
-								} else if(htmlExtTest.test(committed)) {
+								} else if (htmlExtTest.test(committed)) {
 									contents = minifyHTML(String(contents));
 								} else {
 									let publicDir = false;
-									for(const dir of Object.values(dirs)) {
-										if(committed.startsWith(dir)) {
+									for (const dir of Object.values(dirs)) {
+										if (committed.startsWith(dir)) {
 											publicDir = dir;
 											break;
 										}
 									}
 									const type = mime.getType(committed);
 									const typeIsJS = type === "application/javascript";
-									if(publicDir) {
-										if(typeIsJS) {
+									if (publicDir) {
+										if (typeIsJS) {
 											const originalContents = minifyHTMLInJS(String(contents));
 											await fs.writeFile(`${fullPath}.source`, originalContents);
 											const filenameIndex = committed.lastIndexOf("/") + 1;
@@ -744,7 +744,7 @@ const ServeCube = module.exports = {
 											await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
 											await replant(`${committed}.source`);
 											await replant(`${committed}.map`);
-										} else if(type === "text/css") {
+										} else if (type === "text/css") {
 											const originalContents = String(contents);
 											await fs.writeFile(`${fullPath}.source`, originalContents);
 											const mapPath = `${fullPath}.map`;
@@ -763,23 +763,23 @@ const ServeCube = module.exports = {
 											await replant(`${committed}.source`);
 											await replant(`${committed}.map`);
 										}
-									} else if(typeIsJS) {
+									} else if (typeIsJS) {
 										contents = minifyHTMLInJS(String(contents));
 									}
 								}
 								await fs.writeFile(fullPath, contents);
 								try {
 									await replant(committed);
-								} catch(err) {}
+								} catch (err) {}
 							}
-						} catch(err) {
+						} catch (err) {
 							console.error(err);
 							continue;
 						}
 					}
 					res.send();
-					if(files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length + 1)]) {
-						if(files["package.json"]) {
+					if (files["package.json"] || files[process.mainModule.filename.slice(process.cwd().length + 1)]) {
+						if (files["package.json"]) {
 							childProcess.spawnSync("npm", ["install"]);
 						}
 						process.exit();
@@ -788,11 +788,11 @@ const ServeCube = module.exports = {
 					renderError(403, req, res);
 				}
 				return;
-			} else if(subdomain.endsWith(".")) {
-				if(redirect === false) {
+			} else if (subdomain.endsWith(".")) {
+				if (redirect === false) {
 					redirect = `${req.protocol}://`;
 				}
-				if(subdomain !== ".") {
+				if (subdomain !== ".") {
 					redirect += subdomain;
 				}
 			} else {
@@ -802,48 +802,48 @@ const ServeCube = module.exports = {
 			req.decodedPath = req.decodedURL.slice(0, !queryIndex ? undefined : req.queryIndex);
 			req.queryString = queryIndex ? req.decodedURL.slice(queryIndex, req.decodedURL.length) : undefined;
 			let url = req.decodedPath;
-			for(const args of urlReplacements) {
+			for (const args of urlReplacements) {
 				url = url.replace(...args);
 			}
-			if(queryIndex) {
+			if (queryIndex) {
 				url += `?${req.queryString}`;
 			}
-			if(req.decodedURL !== url) {
-				if(redirect === false) {
+			if (req.decodedURL !== url) {
+				if (redirect === false) {
 					redirect = url;
 				} else {
 					redirect += options.domain + url;
 				}
-			} else if(redirect !== false) {
+			} else if (redirect !== false) {
 				redirect += options.domain + req.decodedURL;
 			}
-			if(redirect !== false) {
+			if (redirect !== false) {
 				res.redirect(308, redirect);
 				return;
 			} else {
 				const {rawPath, branches, hasIndex, methods, forbidden, methodNotAllowed} = await getRawPath(req.dir + req.decodedPath, req.method);
 				let allowedMethods = methods ? methods.join(", ") : (rawPath ? (pageExtTest.test(rawPath) ? allMethodsString : "GET") : "");
-				if(allowedMethods) {
+				if (allowedMethods) {
 					allowedMethods = `OPTIONS, ${allowedMethods}`;
 					res.set("Allow", allowedMethods);
-					if(origin) {
+					if (origin) {
 						res.set("Access-Control-Allow-Methods", allowedMethods);
 					}
 				}
 				req.rawPath = rawPath;
 				req.branches = branches;
-				if(req.method === "OPTIONS") {
+				if (req.method === "OPTIONS") {
 					res.send();
 					return;
 				}
-				if(!rawPath) {
-					if(hasIndex) {
+				if (!rawPath) {
+					if (hasIndex) {
 						res.redirect(308, req.queryString === undefined ? `${req.decodedURL}/` : `${req.decodedURL.slice(0, req.queryIndex)}/${req.decodedURL.slice(req.queryIndex)}`);
 						return;
-					} else if(forbidden) {
+					} else if (forbidden) {
 						renderError(403, req, res);
 						return;
-					} else if(methodNotAllowed) {
+					} else if (methodNotAllowed) {
 						renderError(405, req, res);
 						return;
 					}
@@ -851,28 +851,28 @@ const ServeCube = module.exports = {
 				req.next();
 			}
 		});
-		if(options.middleware instanceof Array) {
-			for(const func of options.middleware) {
-				if(func instanceof Function) {
+		if (options.middleware instanceof Array) {
+			for (const func of options.middleware) {
+				if (func instanceof Function) {
 					app.use(func);
 				}
 			}
 		}
 		app.all("*", async (req, res) => {
-			if(req.rawPath) {
-				if(njsExtTest.test(req.rawPath)) {
-					if(!res.get("Content-Type")) {
+			if (req.rawPath) {
+				if (njsExtTest.test(req.rawPath)) {
+					if (!res.get("Content-Type")) {
 						res.set("Content-Type", mime.getType(req.rawPath.replace(njsExtTest, "")) || "text/html");
 					}
 					renderLoad(req.dir + req.decodedPath, req, res);
-				} else if(req.method === "GET") {
-					if(!res.get("Cache-Control")) {
+				} else if (req.method === "GET") {
+					if (!res.get("Cache-Control")) {
 						res.set("Cache-Control", req.rawPath.endsWith(".map") || req.rawPath.endsWith(".source") ? "no-cache" : "max-age=86400");
 					}
 					const type = mime.getType(req.rawPath);
-					if(type) {
+					if (type) {
 						res.set("Content-Type", type);
-						if(type === "application/javascript" || type === "text/css") {
+						if (type === "application/javascript" || type === "text/css") {
 							res.set("SourceMap", `${req.decodedPath}.map`);
 						}
 					}
@@ -887,7 +887,7 @@ const ServeCube = module.exports = {
 			}
 		});
 		http.createServer(app).listen(options.httpPort);
-		if(options.tls instanceof Object) {
+		if (options.tls instanceof Object) {
 			https.createServer(options.tls, app).listen(options.httpsPort);
 		}
 		return cube;

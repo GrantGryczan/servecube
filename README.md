@@ -216,7 +216,7 @@ this.value += html`
 	<div>
 		You have <b>${cakes}</b> cakes and <b>${pies}</b> pies remaining.<br>
 		Here, have some numbers: <span>`;
-for(let i = 1; i <= 10; i++) {
+for (let i = 1; i <= 10; i++) {
 	this.value += html` ${i}`;
 }
 this.value += html`</span>
