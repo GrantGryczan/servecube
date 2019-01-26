@@ -70,7 +70,7 @@ const minifyHTMLInJS = code => {
 	return code.join("");
 };
 const _depth = Symbol("depth");
-const ServeCubeError = class ServeCubeContext {
+const ServeCubeContext = class ServeCubeContext {
 	constructor(obj) {
 		if (obj instanceof Object) {
 			Object.assign(this, obj);
