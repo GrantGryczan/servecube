@@ -25,7 +25,7 @@ mime.define({
 	"text/html": ["njs"],
 	"text/css": ["scss"]
 }, true);
-class ServeCubeError extends Error {
+const ServeCubeError = class ServeCubeError extends Error {
 	constructor() {
 		const err = super(...arguments);
 		err.name = "ServeCubeError";
@@ -70,7 +70,7 @@ const minifyHTMLInJS = code => {
 	return code.join("");
 };
 const _depth = Symbol("depth");
-class ServeCubeContext {
+const ServeCubeError = class ServeCubeContext {
 	constructor(obj) {
 		if (obj instanceof Object) {
 			Object.assign(this, obj);
