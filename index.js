@@ -196,10 +196,10 @@ const ServeCube = module.exports = {
 			}
 			const output = {};
 			if (!(output.dir = (output.paths = path.split("/")).shift())) {
-				throw new ServeCubeError("The specified path contains no base directory.");
+				throw new ServeCubeError("The provided path contains no base directory.");
 			}
 			if (!tree[output.dir]) {
-				throw new ServeCubeError(`The specified base directory, \`${output.dir}\`, is not planted.`);
+				throw new ServeCubeError(`The provided base directory, \`${output.dir}\`, is not planted.`);
 			}
 			return output;
 		};

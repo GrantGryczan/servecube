@@ -101,7 +101,7 @@ const {serve, html} = require("servecube");
 	* `errorDir`: (string) A relative path to your error directory.
 		* Optional
 		* Examples: `"error"`, `"err"`
-	* `loadDirs`: (Array) Any relative paths to be planted in addition to those specified in the subdomains and error directory.
+	* `loadDirs`: (Array) Any relative paths to be planted in addition to those provided in the subdomain and error directories.
 		* Optional
 		* Example: `["load"]`
 	* `httpPort`: (number) The port number listened to for HTTP traffic.
@@ -298,7 +298,7 @@ Context objects use the following properties.
 * `method`: (string) The HTTP request method. Use this instead of any properties or methods of `this.req`.
 	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context, which allows the loading of method files. This property **is not included** in resolved context.
 	* Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
-* `params`: (Object) An object of the URL template parameters. Object keys are parameter names you defined in the names of the directories and files, and object values are what the client specified in place of those keys in the URL.
+* `params`: (Object) An object of the URL template parameters. Object keys are parameter names as defined in the names of the directories and files, and object values are what the client specified in place of those keys in the URL.
 	* Presence: This property **is predefined** by ServeCube if URL templating is used under the file's path. This property **is passed** into loaded context, but in the case of conflicting parameter names the passed properties are overwritten. This property **is not included** in resolved context.
 	* Example: `{username: "CoolGuy43", message: "123"}` This, for example, would be the parameter object if the raw path is "www/users/{username}/messages/{message}/contents/GET.json.njs" and the client requested a URL with the path "/users/CoolGuy43/messages/123/contents".
 * `status`: (number) The HTTP response status code. This property also applies to redirection status. Use this instead of any properties or methods of `this.res`.
