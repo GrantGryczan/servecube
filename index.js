@@ -721,7 +721,7 @@ const ServeCube = module.exports = {
 												compact: true,
 												filename,
 												minified: true,
-												presets: ["env"],
+												presets: ["@babel/preset-env"],
 												sourceMaps: true,
 												sourceType: "script",
 												...options.babelOptions
