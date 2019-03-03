@@ -18,9 +18,6 @@ This documentation assumes you already have a fair understanding of JavaScript, 
 * URL parameter templating is available.
 * Multiple subdomains with different functions in one server are accepted.
 
-## Version Format
-If any updates that might affect your current ServeCube implementation are applied, the second digit in the version number is raised. Thus, if you are to update the ServeCube module in your package, you should check the docs for relevant updates if it is the second digit that increased. If the third digit increases, it is only a bug fix or small update that will not typically deem your code dysfunctional.
-
 ## Terminology
 * The ServeCube **tree** is a cache of much of your working directory's file structure. This tree does not persist between Node processes.
 * A **planted** file is a file cached under the tree. These files have potential to be served to users visiting your website.
