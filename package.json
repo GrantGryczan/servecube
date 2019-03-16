@@ -1,6 +1,6 @@
 {
 	"name": "servecube",
-	"version": "1.16.16",
+	"version": "1.16.17",
 	"description": "A modular Node web framework optimized for websites and web services for your development convenience",
 	"main": "index.js",
 	"repository": {
@@ -17,8 +17,8 @@
 	},
 	"homepage": "https://github.com/GrantGryczan/ServeCube#readme",
 	"dependencies": {
-		"@babel/core": "^7.3.3",
-		"@babel/preset-env": "^7.3.1",
+		"@babel/core": "^7.3.4",
+		"@babel/preset-env": "^7.3.4",
 		"body-parser": "^1.18.3",
 		"clean-css": "^4.2.1",
 		"express": "^4.16.4",
@@ -28,7 +28,7 @@
 		"path-to-regexp": "^2.4.0",
 		"request": "^2.88.0",
 		"request-promise-native": "^1.0.7",
-		"uglify-js": "^3.4.9"
+		"uglify-js": "^3.4.10"
 	},
 	"devDependencies": {}
 }
