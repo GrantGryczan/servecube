@@ -1,6 +1,6 @@
 {
 	"name": "servecube",
-	"version": "1.16.15",
+	"version": "1.16.16",
 	"description": "A modular Node web framework optimized for websites and web services for your development convenience",
 	"main": "index.js",
 	"repository": {

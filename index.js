@@ -102,6 +102,11 @@ html.escape = code => {
 	}
 	return code;
 };
+const assignGitTree = async (gitData, url) => {
+	for (const item of JSON.parse(await request.get(url, requestOptions)).tree) {
+		gitData[item.path] = item.url;
+	}
+};
 const ServeCube = module.exports = {
 	html,
 	ServeCubeContext, 
@@ -637,36 +642,43 @@ const ServeCube = module.exports = {
 						res.send();
 						return;
 					}
+					let anyModifiedOrAdded = false;
 					const files = {};
 					for (const commit of payload.commits) {
 						for (const removed of commit.removed) {
 							files[removed] = 1;
 						}
 						for (const modified of commit.modified) {
+							anyModifiedOrAdded = true;
 							files[modified] = 2;
 						}
 						for (const added of commit.added) {
+							anyModifiedOrAdded = true;
 							files[added] = 3;
 						}
 					}
-					for (const committed of Object.keys(files)) {
+					let gitData = {};
+					if (anyModifiedOrAdded) {
+						await assignGitTree(gitData, payload.repository.trees_url);
+					}
+					for (const path of Object.keys(files)) {
 						try {
-							const fullPath = options.basePath + committed;
+							const fullPath = options.basePath + path;
 							try {
-								limb(committed);
+								limb(path);
 							} catch (err) {}
-							if (files[committed] === 1) {
+							if (files[path] === 1) {
 								if (await fs.exists(fullPath)) {
 									await fs.unlink(fullPath);
-									const type = mime.getType(committed);
+									const type = mime.getType(path);
 									if (type === "application/javascript" || type === "text/css") {
-										const mapCommitted = `${committed}.map`;
+										const mapCommitted = `${path}.map`;
 										const mapPath = options.basePath + mapCommitted;
 										if (await fs.exists(mapPath)) {
 											limb(mapCommitted);
 											await fs.unlink(mapPath);
 										}
-										const sourceCommitted = `${committed}.source`;
+										const sourceCommitted = `${path}.source`;
 										const sourcePath = options.basePath + sourceCommitted;
 										if (await fs.exists(sourcePath)) {
 											limb(sourceCommitted);
@@ -674,47 +686,55 @@ const ServeCube = module.exports = {
 										}
 									}
 								}
-								let index = committed.length;
-								while ((index = committed.lastIndexOf("/", index) - 1) !== -2) {
-									const path = options.basePath + committed.slice(0, index + 1);
-									if (await fs.exists(path)) {
+								let index = path.length;
+								while ((index = path.lastIndexOf("/", index) - 1) !== -2) {
+									const filePath = options.basePath + path.slice(0, index + 1);
+									if (await fs.exists(filePath)) {
 										try {
-											await fs.rmdir(path);
+											await fs.rmdir(filePath);
 										} catch (err) {
 											break;
 										}
 									}
 								}
-							} else if (files[committed] === 2 || files[committed] === 3) {
-								const file = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/contents/${committed}?ref=${branch}`, requestOptions));
+							} else {
+								let ancestry = "";
+								let previousURL;
+								for (const name of path.split("/").slice(0, -1)) {
+									if (!gitData[ancestry += (ancestry && "/") + name]) {
+										await assignGitTree(gitData, previousURL);
+									}
+									previousURL = gitData[ancestry];
+								}
+								const file = JSON.parse(await request.get(gitData[path], requestOptions));
 								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
-								while (index = committed.indexOf("/", index) + 1) {
-									const nextPath = options.basePath + committed.slice(0, index - 1);
+								while (index = path.indexOf("/", index) + 1) {
+									const nextPath = options.basePath + path.slice(0, index - 1);
 									if (!await fs.exists(nextPath)) {
 										await fs.mkdir(nextPath);
 									}
 								}
-								if (njsExtTest.test(committed)) {
+								if (njsExtTest.test(path)) {
 									contents = minifyHTMLInJS(String(contents));
-								} else if (htmlExtTest.test(committed)) {
+								} else if (htmlExtTest.test(path)) {
 									contents = minifyHTML(String(contents));
 								} else {
 									let publicDir = false;
 									for (const dir of Object.values(dirs)) {
-										if (committed.startsWith(dir)) {
+										if (path.startsWith(dir)) {
 											publicDir = dir;
 											break;
 										}
 									}
-									const type = mime.getType(committed);
+									const type = mime.getType(path);
 									const typeIsJS = type === "application/javascript";
 									if (publicDir) {
 										if (typeIsJS) {
 											const originalContents = minifyHTMLInJS(String(contents));
 											await fs.writeFile(`${fullPath}.source`, originalContents);
-											const filenameIndex = committed.lastIndexOf("/") + 1;
-											const filename = committed.slice(filenameIndex);
+											const filenameIndex = path.lastIndexOf("/") + 1;
+											const filename = path.slice(filenameIndex);
 											const compiled = babel.transform(originalContents, {
 												ast: false,
 												comments: false,
@@ -735,15 +755,15 @@ const ServeCube = module.exports = {
 												},
 												sourceMap: {
 													content: JSON.stringify(compiled.map),
-													root: committed.slice(publicDir.length, filenameIndex)
+													root: path.slice(publicDir.length, filenameIndex)
 												}
 											});
 											contents = result.code;
 											const sourceMap = JSON.parse(result.map);
 											sourceMap.sources = [`${filename}.source`];
 											await fs.writeFile(`${fullPath}.map`, JSON.stringify(sourceMap));
-											await replant(`${committed}.source`);
-											await replant(`${committed}.map`);
+											await replant(`${path}.source`);
+											await replant(`${path}.map`);
 										} else if (type === "text/css") {
 											const originalContents = String(contents);
 											await fs.writeFile(`${fullPath}.source`, originalContents);
@@ -756,12 +776,12 @@ const ServeCube = module.exports = {
 											const output = cleaner.minify(String(result.css), String(result.map));
 											contents = output.styles;
 											const sourceMap = JSON.parse(output.sourceMap);
-											const filenameIndex = committed.lastIndexOf("/") + 1;
-											sourceMap.sourceRoot = committed.slice(publicDir.length, filenameIndex);
-											sourceMap.sources = [`${committed.slice(filenameIndex)}.source`];
+											const filenameIndex = path.lastIndexOf("/") + 1;
+											sourceMap.sourceRoot = path.slice(publicDir.length, filenameIndex);
+											sourceMap.sources = [`${path.slice(filenameIndex)}.source`];
 											await fs.writeFile(mapPath, JSON.stringify(sourceMap));
-											await replant(`${committed}.source`);
-											await replant(`${committed}.map`);
+											await replant(`${path}.source`);
+											await replant(`${path}.map`);
 										}
 									} else if (typeIsJS) {
 										contents = minifyHTMLInJS(String(contents));
@@ -769,7 +789,7 @@ const ServeCube = module.exports = {
 								}
 								await fs.writeFile(fullPath, contents);
 								try {
-									await replant(committed);
+									await replant(path);
 								} catch (err) {}
 							}
 						} catch (err) {
