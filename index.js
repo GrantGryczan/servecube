@@ -588,8 +588,8 @@ const ServeCube = module.exports = {
 				res.sendStatus(status);
 			}
 		};
-		const assignGitTree = async (gitData, sha, parentPath) => {
-			for (const item of JSON.parse(await request.get(`https://api.github.com/repos/GrantGryczan/Miroware/git/trees/${sha}`, requestOptions)).tree) {
+		const assignGitTree = async (gitData, url, parentPath) => {
+			for (const item of JSON.parse(await request.get(url, requestOptions)).tree) {
 				gitData[(parentPath ? `${parentPath}/` : "") + item.path] = item.sha;
 			}
 		};
@@ -642,10 +642,10 @@ const ServeCube = module.exports = {
 						res.send();
 						return;
 					}
-					let anyModifiedOrAdded = false;
 					const files = {};
 					const gitData = {};
 					for (const commit of payload.commits) {
+						let anyModifiedOrAdded = false;
 						for (const removed of commit.removed) {
 							files[removed] = 1;
 						}
@@ -658,7 +658,7 @@ const ServeCube = module.exports = {
 							files[added] = 3;
 						}
 						if (anyModifiedOrAdded) {
-							await assignGitTree(gitData, commit.tree_id);
+							await assignGitTree(gitData, `https://api.github.com/repos/${payload.repository.full_name}/git/trees/${commit.tree_id}`);
 						}
 					}
 					for (const path of Object.keys(files)) {
@@ -703,12 +703,12 @@ const ServeCube = module.exports = {
 								for (const name of path.split("/")) {
 									ancestry += (ancestry && "/") + name;
 									if (previousAncestry && !gitData[ancestry]) {
-										await assignGitTree(gitData, gitData[previousAncestry], previousAncestry);
+										await assignGitTree(gitData, `https://api.github.com/repos/${payload.repository.full_name}/git/trees/${gitData[previousAncestry]}`, previousAncestry);
 									}
 									previousAncestry = ancestry;
 								}
-								const file = JSON.parse(await request.get(`https://api.github.com/repos/GrantGryczan/Miroware/git/blobs/${gitData[path]}`, requestOptions));
-								let contents = Buffer.from(file.content, file.encoding);
+								const blob = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/git/blobs/${gitData[path]}`, requestOptions));
+								let contents = Buffer.from(blob.content, blob.encoding);
 								let index = 0;
 								while (index = path.indexOf("/", index) + 1) {
 									const nextPath = options.basePath + path.slice(0, index - 1);
