@@ -102,11 +102,6 @@ html.escape = code => {
 	}
 	return code;
 };
-const assignGitTree = async (gitData, url) => {
-	for (const item of JSON.parse(await request.get(url, requestOptions)).tree) {
-		gitData[item.path] = item.url;
-	}
-};
 const ServeCube = module.exports = {
 	html,
 	ServeCubeContext, 
@@ -593,6 +588,11 @@ const ServeCube = module.exports = {
 				res.sendStatus(status);
 			}
 		};
+		const assignGitTree = async (gitData, sha, parentPath) => {
+			for (const item of JSON.parse(await request.get(`https://api.github.com/repos/GrantGryczan/Miroware/git/trees/${sha}`, requestOptions)).tree) {
+				gitData[(parentPath ? `${parentPath}/` : "") + item.path] = item.sha;
+			}
+		};
 		app.use(bodyParser.raw({
 			limit: "100mb",
 			type: "*/*"
@@ -644,6 +644,7 @@ const ServeCube = module.exports = {
 					}
 					let anyModifiedOrAdded = false;
 					const files = {};
+					const gitData = {};
 					for (const commit of payload.commits) {
 						for (const removed of commit.removed) {
 							files[removed] = 1;
@@ -656,10 +657,9 @@ const ServeCube = module.exports = {
 							anyModifiedOrAdded = true;
 							files[added] = 3;
 						}
-					}
-					let gitData = {};
-					if (anyModifiedOrAdded) {
-						await assignGitTree(gitData, payload.repository.trees_url);
+						if (anyModifiedOrAdded) {
+							await assignGitTree(gitData, commit.tree_id);
+						}
 					}
 					for (const path of Object.keys(files)) {
 						try {
@@ -699,14 +699,15 @@ const ServeCube = module.exports = {
 								}
 							} else {
 								let ancestry = "";
-								let previousURL;
-								for (const name of path.split("/").slice(0, -1)) {
-									if (!gitData[ancestry += (ancestry && "/") + name]) {
-										await assignGitTree(gitData, previousURL);
+								let previousAncestry;
+								for (const name of path.split("/")) {
+									ancestry += (ancestry && "/") + name;
+									if (previousAncestry && !gitData[ancestry]) {
+										await assignGitTree(gitData, gitData[previousAncestry], previousAncestry);
 									}
-									previousURL = gitData[ancestry];
+									previousAncestry = ancestry;
 								}
-								const file = JSON.parse(await request.get(gitData[path], requestOptions));
+								const file = JSON.parse(await request.get(`https://api.github.com/repos/GrantGryczan/Miroware/git/blobs/${gitData[path]}`, requestOptions));
 								let contents = Buffer.from(file.content, file.encoding);
 								let index = 0;
 								while (index = path.indexOf("/", index) + 1) {
