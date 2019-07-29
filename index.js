@@ -624,7 +624,7 @@ const ServeCube = module.exports = {
 			}
 			try {
 				req.decodedURL = decodeURIComponent(req.url);
-			} catch (err) {
+			} catch {
 				renderError(400, req, res);
 				return;
 			}
@@ -666,7 +666,7 @@ const ServeCube = module.exports = {
 							const fullPath = options.basePath + path;
 							try {
 								limb(path);
-							} catch (err) {}
+							} catch {}
 							if (files[path] === 1) {
 								if (await fs.exists(fullPath)) {
 									await fs.unlink(fullPath);
@@ -692,7 +692,7 @@ const ServeCube = module.exports = {
 									if (await fs.exists(filePath)) {
 										try {
 											await fs.rmdir(filePath);
-										} catch (err) {
+										} catch {
 											break;
 										}
 									}
@@ -791,7 +791,7 @@ const ServeCube = module.exports = {
 								await fs.writeFile(fullPath, contents);
 								try {
 									await replant(path);
-								} catch (err) {}
+								} catch {}
 							}
 						} catch (err) {
 							console.error(err);
