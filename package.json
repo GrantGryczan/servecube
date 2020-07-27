@@ -1,6 +1,6 @@
 {
 	"name": "servecube",
-	"version": "1.17.1",
+	"version": "1.18.0",
 	"description": "A modular Node web framework optimized for websites and web services for your development convenience",
 	"main": "index.js",
 	"repository": {
@@ -24,10 +24,9 @@
 		"express": "^4.17.1",
 		"fs-extra": "^5.0.0",
 		"mime": "^2.4.4",
+		"node-fetch": "^2.6.0",
 		"node-sass": "^4.12.0",
 		"path-to-regexp": "^2.4.0",
-		"request": "^2.88.0",
-		"request-promise-native": "^1.0.7",
 		"uglify-js": "^3.6.2"
 	},
 	"devDependencies": {}

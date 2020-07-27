@@ -284,38 +284,41 @@ For every NJS file, an object is passed into the script's scope as its `this` va
 
 Context objects use the following properties.
 * `rawPath`: (string) The raw path of the current NJS file.
-	* Presence: This property **is always predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
+	* Presence: This property **is always predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not kept** in resolved context.
 	* Examples: [Same as in the `rawPath` property of `cube.getRawPath`'s resolution value.](#cube)
 * `done()`: (Function) The method to call when your script is ready to send an HTTP response or resolve a ServeCube load. This method should always be called once, no more and no less, from any NJS file.
-	* Presence: This property **is always predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
+	* Presence: This property **is always predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not kept** in resolved context.
 * `req`: (Object) The ServeCube request object. This is just the `express` request object, but with a few extra properties defined by ServeCube's middleware. A reference can be found [here](#middleware).
-	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not included** in resolved context.
+	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not kept** in resolved context.
 * `res`: (Object) The `express` response object. A reference can be found [here](https://expressjs.com/en/api.html#res).
-	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not included** in resolved context.
+	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context. This property **is not kept** in resolved context.
 * `method`: (string) The HTTP request method. Use this instead of any properties or methods of `this.req`.
-	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context, which allows the loading of method files. This property **is not included** in resolved context.
+	* Presence: This property **is predefined** by ServeCube for HTTP requests. This property **is passed** into loaded context, which allows the loading of method files. This property **is not kept** in resolved context.
 	* Examples: `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"`
 * `params`: (Object) An object of the URL template parameters. Object keys are parameter names as defined in the names of the directories and files, and object values are what the client specified in place of those keys in the URL.
-	* Presence: This property **is predefined** by ServeCube if URL templating is used under the file's path. This property **is passed** into loaded context, but in the case of conflicting parameter names the passed properties are overwritten. This property **is not included** in resolved context.
+	* Presence: This property **is predefined** by ServeCube if URL templating is used under the file's path. This property **is passed** into loaded context, but in the case of conflicting parameter names the passed properties are overwritten. This property **is not kept** in resolved context.
 	* Example: `{username: "CoolGuy43", message: "123"}` This, for example, would be the parameter object if the raw path is "www/users/{username}/messages/{message}/contents/GET.json.njs" and the client requested a URL with the path "/users/CoolGuy43/messages/123/contents".
 * `status`: (number) The HTTP response status code. This property also applies to redirection status. Use this instead of any properties or methods of `this.res`.
-	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
+	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is kept** in resolved context.
 	* Optional
 	* Default: `200`, `201` if it is a `POST` request, or `307` if the `redirect` option is defined
 * `redirect`: (string) The URL to redirect the client to. Use this instead of any properties or methods of `this.res`.
-	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is included** in resolved context.
+	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is kept** in resolved context.
 	* Optional
 	* Examples: `"/test/page"`, `"https://example.com/test/page"`
-* `value`: Any body value compatible with `express`'s `res.send` method. A reference can be found [here](https://expressjs.com/en/api.html#res.send). This is the HTTP response body for HTTP requests, or just a regular context property for ServeCube loads. Use this instead of any properties or methods of `this.res`.
-	* Presence: This property **is always predefined** by ServeCube as an empty string. This property **is not passed** into loaded context. This property **is included** in resolved context.
+* `value`: Any body value compatible with `express`'s `res.send` method. A reference can be found [here](https://expressjs.com/en/api.html#res.send). This is the HTTP response body for HTTP requests, or just a regular context property for ServeCube loads. Use this instead of any properties or methods of `this.res` unless you set `this.noSend` to `true`.
+	* Presence: This property **is always predefined** by ServeCube as an empty string. This property **is not passed** into loaded context. This property **is kept** in resolved context.
 	* Required
 	* Default: `""`
 	* Examples: `"Hello, world!"`, `{cool: true}`, `Buffer.from("whatever")`
+* `noSend`: (boolean) Whether to prevent ServeCube from sending `express` responses. If this is `true`, `this.done()` will not send an `express` response.
+	* Presence: This property **is not predefined** by ServeCube. This property **is passed** into loaded context. This property **is kept** in resolved context.
+	* Optional
 * `depth`: (number) The depth of the current context. This value starts at 1 per request. 1 is added whenever the context is passed to another load, and 1 is subtracted after each load is complete.
-	* Presence: This property **is always predefined** by ServeCube. This property **is passed** into loaded context. This property **is included** in resolved context.
+	* Presence: This property **is always predefined** by ServeCube. This property **is passed** into loaded context. This property **is kept** in resolved context.
 	* Read-only
 * `cache(context)`: (Function | boolean) A function used for server-side load caching. If defined, the script's resolved context is cached by ServeCube (under `cube.loadCache`) and used whenever the file is loaded, whether by HTTP request or not. This function is called whenever it is necessary for ServeCube to retrieve or store such a cached context, as cached contexts are identified by the string returned by this function, known as a cache index. This function is similar in nature to the [HTTP `Vary` response header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary), but data is cached on the server rather than the client, and cache identification may vary based on more than just HTTP headers. This may also be set to `true` as an alias of `() => ""`. Cache indexing is per NJS file.
-	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not included** in resolved context.
+	* Presence: This property **is not predefined** by ServeCube. This property **is not passed** into loaded context. This property **is not kept** in resolved context.
 	* Optional
 	* `context`: (Object) The predefined context object.
 	* Returns: (string) The cache index.
@@ -325,7 +328,7 @@ Context objects use the following properties.
 		* `context => context.req.get("User-Agent")` This would vary cached contexts based on the `User-Agent` header.
 		* ``context => `${context.req.get("Content-Type")} ${encodeURIComponent(context.params.user)} ${encodeURIComponent(context.params.message)}` `` This would vary cached contexts based on the `Content-Type` header, the `user` URL parameter, and the `message` URL parameter.
 
-Any properties not on the above list **are passed** into loaded context and **are included** in resolved context.
+Any properties not on the above list **are passed** into loaded context and **are kept** in resolved context.
 
 ## Important Notes
 * You should never manually edit or remove planted files or directories while ServeCube is running, as they will not be automatically replanted or limbed. The same applies to planting newly created files. ServeCube will only automatically replant and limb when it receives GitHub webhooks. For now, if you aren't using GitHub integration to do things or are using the file system directly, you need to restart ServeCube to limb and replant files, or you can limb and replant them programmatically. If you're just editing the contents of non-NJS files, this does not apply, as only NJS files have their contents cached, and non-NJS files have their contents served directly from the file system.

@@ -1,7 +1,7 @@
 const fs = require("fs-extra");
 const http = require("http");
 const https = require("https");
-const request = require("request-promise-native");
+const fetch = require("node-fetch");
 const express = require("express");
 const bodyParser = require("body-parser");
 const pathToRegexp = require("path-to-regexp");
@@ -172,13 +172,14 @@ const ServeCube = module.exports = {
 		if (!(options.loadEnd instanceof Array)) {
 			delete options.loadEnd;
 		}
-		const requestOptions = {
+		const fetchOptions = {
+			method: "GET",
 			headers: {
 				"User-Agent": `ServeCube/${package.version}`
 			}
 		};
 		if (typeof options.githubToken === "string") {
-			requestOptions.headers.Authorization = `token ${options.githubToken}`;
+			fetchOptions.headers.Authorization = `token ${options.githubToken}`;
 		}
 		if (!(options.babelOptions instanceof Object)) {
 			options.babelOptions = {};
@@ -554,23 +555,27 @@ const ServeCube = module.exports = {
 			});
 			const result = await load(path, context);
 			if (result.redirect) {
-				res.redirect(result.status || 307, result.redirect);
+				if (!result.noSend) {
+					res.redirect(result.status || 307, result.redirect);
+				}
 			} else {
 				res.status(result.status || (res.statusCode === 200 ? (req.method === "POST" ? 201 : 200) : res.statusCode));
-				if (result.value) {
-					let value;
-					if (typeof result.value === "string" || result.value instanceof Buffer) {
-						({value} = result);
-					} else {
-						try {
-							value = JSON.stringify(result.value);
-						} catch (err) {
-							throw new ServeCubeError(`An error occured while evaluating \`${options.basePath + req.rawPath}\`.\n${err.stack}`);
+				if (!result.noSend) {
+					if (result.value) {
+						let value;
+						if (typeof result.value === "string" || result.value instanceof Buffer) {
+							({value} = result);
+						} else {
+							try {
+								value = JSON.stringify(result.value);
+							} catch (err) {
+								throw new ServeCubeError(`An error occured while evaluating \`${options.basePath + req.rawPath}\`.\n${err.stack}`);
+							}
 						}
+						res.set("Content-Length", value.length).send(value);
+					} else {
+						res.send();
 					}
-					res.set("Content-Length", value.length).send(value);
-				} else {
-					res.send();
 				}
 			}
 		};
@@ -589,7 +594,7 @@ const ServeCube = module.exports = {
 			}
 		};
 		const assignGitTree = async (gitData, url, parentPath) => {
-			for (const item of JSON.parse(await request.get(url, requestOptions)).tree) {
+			for (const item of (await (await fetch(url, fetchOptions)).json()).tree) {
 				gitData[(parentPath ? `${parentPath}/` : "") + item.path] = item.sha;
 			}
 		};
@@ -707,7 +712,7 @@ const ServeCube = module.exports = {
 									}
 									previousAncestry = ancestry;
 								}
-								const blob = JSON.parse(await request.get(`https://api.github.com/repos/${payload.repository.full_name}/git/blobs/${gitData[path]}`, requestOptions));
+								const blob = await (await fetch(`https://api.github.com/repos/${payload.repository.full_name}/git/blobs/${gitData[path]}`, fetchOptions)).json();
 								let contents = Buffer.from(blob.content, blob.encoding);
 								let index = 0;
 								while (index = path.indexOf("/", index) + 1) {
